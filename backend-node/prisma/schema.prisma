@@ -1,0 +1,100 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                        String         @id @default(uuid())
+  email                     String         @unique
+  password                  String
+  isVerified                Boolean        @default(false)
+  verificationToken         String?
+  verificationTokenExpires  DateTime?
+  resetPasswordToken        String?
+  resetPasswordTokenExpires DateTime?
+  otp                       String?
+  otpExpires                DateTime?
+  studiedToday              Float          @default(0.0)
+  weeklyHours               Float          @default(0.0)
+  weeklyGoal                Float          @default(20.0)
+  subjects                  Subject[]
+  flashcardSets             FlashcardSet[]
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+}
+
+model Subject {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  color       String    @default("from-blue-600 to-indigo-600")
+  tags        String    @default("") // Comma-separated tags
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapters    Chapter[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Chapter {
+  id        String   @id @default(uuid())
+  name      String
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topics    Topic[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Topic {
+  id        String     @id @default(uuid())
+  name      String
+  chapterId String
+  chapter   Chapter    @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  materials Material[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Material {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   // 'note' | 'pdf' | 'ppt' | 'image'
+  content   String?  // Rich text or raw content for notes
+  fileUrl   String?  // Mock attachment link
+  fileSize  String?  // e.g. '2.4 MB'
+  topicId   String
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FlashcardSet {
+  id        String      @id @default(uuid())
+  title     String
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cards     Flashcard[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model Flashcard {
+  id         String       @id @default(uuid())
+  setId      String
+  set        FlashcardSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  front      String       // The question text or cloze deletion sentence
+  back       String       // The answer text
+  type       String       // 'front_back' | 'cloze'
+  hint       String?
+  difficulty String       @default("medium") // 'easy' | 'medium' | 'hard'
+  tags       String       @default("") // Subject tags
+  bookmarked Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
