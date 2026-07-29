@@ -30,13 +30,9 @@ Your web app will be live at `http://YOUR_SERVER_IP:5173` and the API Gateway at
 
 ## ⚡ Option 2: Serverless / Cloud Hosting (Vercel + Render / Railway)
 
-### Frontend Deployment (Vercel or Netlify)
-1. Import your GitHub repository into **Vercel** or **Netlify**.
-2. Set Root Directory: `frontend`
-3. Build Command: `npm run build`
-4. Output Directory: `dist`
-5. Environment Variable:
-   - `VITE_API_URL` = `https://your-api-gateway.onrender.com`
+### Frontend Deployment (Vercel)
+- 🚀 **Primary Live Production Link**: **[https://lecturemind-edu.vercel.app](https://lecturemind-edu.vercel.app)**
+- 🌐 **Secondary Live Alias**: **[https://lecturemind-assistant.vercel.app](https://lecturemind-assistant.vercel.app)**
 
 ### Backend Microservices Deployment (Render / Railway / Fly.io)
 Deploy the `docker-compose.yml` file directly on **Render**, **Railway**, or **Fly.io** as a Web Service.
