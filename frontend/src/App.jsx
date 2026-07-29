@@ -5,6 +5,7 @@ import Features from './components/Features';
 import TechStack from './components/TechStack';
 import AuthModal from './components/AuthModal';
 import Dashboard from './components/Dashboard';
+import InteractiveCanvas from './components/InteractiveCanvas';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, 
@@ -59,12 +60,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 relative selection:bg-blue-600/30 selection:text-cyan-400">
+    <div className="min-h-screen bg-[#05070F] relative selection:bg-[#8B5CF6]/30 selection:text-[#C084FC]">
       
-      {/* Decorative Glow Orbs */}
-      <div className="glow-orb glow-orb-blue"></div>
-      <div className="glow-orb glow-orb-indigo"></div>
-      <div className="glow-orb glow-orb-cyan"></div>
+      {/* Scroll-driven Canvas background */}
+      <InteractiveCanvas />
 
       {/* Grid Pattern and Radial Overlay */}
       <div className="absolute inset-0 bg-grid-pattern opacity-100 pointer-events-none z-0"></div>
@@ -84,35 +83,35 @@ export default function App() {
         {view === 'landing' ? (
           <motion.div
             key="landing"
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.45, ease: "easeInOut" }}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
             className="relative z-10 pt-20"
           >
             {/* HERO SECTION */}
-            <section className="relative pt-16 pb-20 sm:pt-24 sm:pb-28">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <section className="relative pt-20 pb-20 sm:pt-28 sm:pb-32">
+              <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center">
                 
                 {/* Announcement Badge */}
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-blue-950/80 border border-blue-800/40 text-blue-400 text-xs font-semibold mb-6 backdrop-blur-sm shadow-inner shadow-blue-500/5 animate-pulse-slow">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-studio-surface border border-studio-border text-studio-purple text-xs font-mono mb-8 backdrop-blur-sm">
                   <Sparkles className="w-3.5 h-3.5" />
-                  Unified AI Study Suite
+                  Socratic Inquiry Suite
                 </div>
 
                 {/* Main Heading */}
-                <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-8 max-w-5xl mx-auto leading-tight">
-                  The Intelligent <span className="text-gradient-blue">AI Console</span> <br />
-                  for College & Seminars
+                <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold font-space tracking-tight mb-8 max-w-5xl mx-auto leading-[1.05] text-[#F8FAFC]">
+                  Do not summarize. <br />
+                  <span className="text-[#A78BFA]">Synthesize.</span>
                 </h1>
 
                 {/* Subtext */}
-                <p className="text-base sm:text-lg md:text-xl text-slate-400 max-w-3xl mx-auto mb-10 leading-relaxed">
-                  Optimize study performance. Upload lectures, recordings, or PDFs and watch the Gemini API generate clean summaries, interactive 3D flashcards, mind maps, and quiz sets in seconds.
+                <p className="text-base sm:text-lg md:text-xl font-sans text-studio-slate max-w-3xl mx-auto mb-12 leading-relaxed">
+                  LectureMind models notes, audio records, and articles into a conceptual schema. It prompts you with inquiries, pushing you to build true retention instead of skim-reading bullet points.
                 </p>
 
                 {/* Hero CTAs */}
-                <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-20">
+                <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-24">
                   <button 
                     onClick={() => {
                       if (currentUser) {
@@ -121,36 +120,31 @@ export default function App() {
                         setIsAuthOpen(true);
                       }
                     }}
-                    className="w-full sm:w-auto relative group px-7 py-4 rounded-xl text-base font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 transition-all duration-300 shadow-lg shadow-blue-500/20 hover:shadow-cyan-500/40 text-center"
+                    className="w-full sm:w-auto px-8 py-4 rounded-full text-sm font-semibold tracking-wide text-white bg-studio-purple hover:bg-[#9B70FF] transition-colors duration-300 text-center font-display"
                   >
-                    <span className="flex items-center justify-center gap-1.5">
-                      {currentUser ? 'Go to Study Room' : 'Get Started Free'}
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </span>
+                    {currentUser ? 'Enter Study Room' : 'Start Socratic Study'}
                   </button>
                   <a 
                     href="#features"
-                    className="w-full sm:w-auto px-7 py-4 rounded-xl text-base font-bold text-slate-300 hover:text-white bg-slate-900/60 border border-slate-800 hover:border-slate-700 hover:bg-slate-900 transition-all duration-300 text-center"
+                    className="w-full sm:w-auto px-8 py-4 rounded-full text-sm font-semibold tracking-wide text-studio-slate hover:text-white bg-studio-surface border border-studio-border transition-colors duration-300 text-center font-display"
                   >
-                    Explore Features
+                    Observe Methodology
                   </a>
                 </div>
 
                 {/* Highlight Statistics */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto border-t border-slate-900 pt-10">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-4xl mx-auto border-t border-studio-border pt-12">
                   <div className="text-center">
-                    <span className="block text-3xl sm:text-4xl font-extrabold text-white mb-1">99.4%</span>
-                    <span className="text-xs uppercase tracking-widest text-slate-500 font-semibold">AI Summary Precision</span>
+                    <span className="block text-2xl font-bold text-studio-textLight font-space mb-1">StateGraph</span>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-studio-slate">AI pipeline flow</span>
                   </div>
-                  <div className="border-l border-slate-900 hidden sm:block h-10 my-auto"></div>
-                  <div className="text-center">
-                    <span className="block text-3xl sm:text-4xl font-extrabold text-white mb-1">Gemini 1.5</span>
-                    <span className="text-xs uppercase tracking-widest text-slate-500 font-semibold">Model Core</span>
+                  <div className="text-center border-t sm:border-t-0 sm:border-x border-studio-border py-4 sm:py-0">
+                    <span className="block text-2xl font-bold text-studio-textLight font-space mb-1">Socratic</span>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-studio-slate">inquiry dialog</span>
                   </div>
-                  <div className="border-l border-slate-900 hidden sm:block h-10 my-auto"></div>
                   <div className="text-center">
-                    <span className="block text-3xl sm:text-4xl font-extrabold text-white mb-1">15 Sec</span>
-                    <span className="text-xs uppercase tracking-widest text-slate-500 font-semibold">Avg processing Speed</span>
+                    <span className="block text-2xl font-bold text-studio-textLight font-space mb-1">Concept Map</span>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-studio-slate">interactive links</span>
                   </div>
                 </div>
 
@@ -167,27 +161,27 @@ export default function App() {
             <TechStack />
 
             {/* PRICING SECTION (Call to Action) */}
-            <section id="pricing" className="py-20 relative overflow-hidden border-t border-slate-900 bg-slate-950/20">
-              <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-                <div className="glass-panel-glow rounded-3xl p-10 sm:p-14 border-blue-500/20 relative">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-cyan-400 to-indigo-500 opacity-20 filter blur-2xl rounded-full"></div>
+            <section id="pricing" className="py-28 relative overflow-hidden border-t border-studio-border bg-[#05070F]">
+              <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center relative z-10">
+                <div className="bg-studio-surface rounded-3xl p-10 sm:p-14 border border-studio-border relative">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-studio-purple/10 opacity-20 filter blur-2xl rounded-full"></div>
                   
-                  <h3 className="text-3xl sm:text-4xl font-extrabold text-white mb-4">
-                    Ready to study smarter, not harder?
+                  <h3 className="text-3xl sm:text-4xl font-bold font-space text-studio-textLight mb-4">
+                    Ready to build true comprehension?
                   </h3>
-                  <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto mb-8">
-                    Join thousands of students and researchers utilizing LectureMind AI to digest long seminars and textbooks in minutes.
+                  <p className="text-studio-slate text-sm sm:text-base max-w-2xl mx-auto mb-8">
+                    Skip simple copy-paste notes. Join college students and self-directed researchers mapping ideas with LectureMind.
                   </p>
                   
                   <div className="flex flex-col sm:flex-row justify-center gap-4">
                     <button 
                       onClick={() => setIsAuthOpen(true)}
-                      className="px-6.5 py-3 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-md shadow-blue-500/10"
+                      className="px-8 py-3.5 rounded-full text-sm font-semibold tracking-wide text-white bg-studio-purple hover:bg-[#9B70FF] transition-colors"
                     >
-                      Get Started Free
+                      Start Free Trial
                     </button>
-                    <button className="px-6.5 py-3 rounded-xl text-sm font-bold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:bg-slate-800 transition-colors">
-                      Contact Support
+                    <button className="px-8 py-3.5 rounded-full text-sm font-semibold tracking-wide text-studio-slate hover:text-white bg-studio-bg border border-studio-border transition-colors">
+                      View Documentation
                     </button>
                   </div>
                 </div>
@@ -195,22 +189,22 @@ export default function App() {
             </section>
 
             {/* FOOTER */}
-            <footer className="border-t border-slate-900 py-10 bg-slate-950 relative z-10">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <footer className="border-t border-studio-border py-12 bg-studio-surface relative z-10">
+              <div className="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center">
-                    <GraduationCap className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-lg bg-studio-purple text-white flex items-center justify-center font-bold">
+                    LM
                   </div>
-                  <span className="text-sm font-bold text-white">
-                    LectureMind <span className="text-blue-400">AI</span>
+                  <span className="text-sm font-bold text-studio-textLight font-space">
+                    LectureMind <span className="text-studio-purple">AI</span>
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 text-center md:text-left">
-                  &copy; {new Date().getFullYear()} LectureMind AI Inc. Powered by Gemini Generative API. All rights reserved.
+                <p className="text-xs text-studio-textMuted text-center md:text-left font-mono">
+                  &copy; {new Date().getFullYear()} LectureMind AI Inc. Distributed under MIT License.
                 </p>
-                <div className="flex gap-4">
-                  <a href="#" className="text-xs text-slate-500 hover:text-slate-400 transition-colors">Privacy Policy</a>
-                  <a href="#" className="text-xs text-slate-500 hover:text-slate-400 transition-colors">Terms of Service</a>
+                <div className="flex gap-6 font-mono text-xs">
+                  <a href="#" className="text-studio-textMuted hover:text-studio-purple transition-colors">Privacy</a>
+                  <a href="#" className="text-studio-textMuted hover:text-studio-purple transition-colors">Terms</a>
                 </div>
               </div>
             </footer>
@@ -218,10 +212,10 @@ export default function App() {
         ) : (
           <motion.div
             key="dashboard"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 50 }}
-            transition={{ duration: 0.45, ease: "easeInOut" }}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
             className="relative z-10 pt-24"
           >
             {/* STUDY DASHBOARD SECTION */}

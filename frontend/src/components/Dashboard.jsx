@@ -4,6 +4,8 @@ import { API_URL } from '../config';
 import SubjectExplorer from './SubjectExplorer';
 import FlashcardHub from './FlashcardHub';
 import AnalyticsPanel from './AnalyticsPanel';
+import VoiceTutor from './VoiceTutor';
+import ExamSimulator from './ExamSimulator';
 import { 
   Flame, 
   Clock, 
@@ -20,7 +22,11 @@ import {
   ChevronRight,
   Brain,
   Zap,
-  RotateCcw
+  RotateCcw,
+  Plus,
+  Trash2,
+  Mic,
+  Timer
 } from 'lucide-react';
 
 export default function Dashboard({ currentUser, onBackToHome }) {
@@ -31,6 +37,42 @@ export default function Dashboard({ currentUser, onBackToHome }) {
     { id: 3, text: "Complete Macroeconomics Quiz 2 on Monetary Policy", completed: false, category: "Economics" },
     { id: 4, text: "Listen to Neural Architecture lecture segment", completed: false, category: "AI" }
   ]);
+
+  const [newTaskText, setNewTaskText] = useState('');
+  const [newTaskCategory, setNewTaskCategory] = useState('General');
+
+  // Load user's saved daily plan tasks on mount
+  useEffect(() => {
+    const savedTasks = localStorage.getItem('lecturemind_user_tasks');
+    if (savedTasks) {
+      try {
+        setTasks(JSON.parse(savedTasks));
+      } catch (e) {}
+    }
+  }, []);
+
+  const saveTasks = (newTasks) => {
+    setTasks(newTasks);
+    localStorage.setItem('lecturemind_user_tasks', JSON.stringify(newTasks));
+  };
+
+  const handleAddTask = (e) => {
+    e.preventDefault();
+    if (!newTaskText.trim()) return;
+    const item = {
+      id: Date.now(),
+      text: newTaskText.trim(),
+      completed: false,
+      category: newTaskCategory
+    };
+    saveTasks([item, ...tasks]);
+    setNewTaskText('');
+  };
+
+  const handleDeleteTask = (id, e) => {
+    e.stopPropagation();
+    saveTasks(tasks.filter(t => t.id !== id));
+  };
 
   // Study Stats States
   const [studiedToday, setStudiedToday] = useState(0.0);
@@ -47,6 +89,8 @@ export default function Dashboard({ currentUser, onBackToHome }) {
     if (hash.includes('/dashboard/subjects')) return 'explorer';
     if (hash.includes('/dashboard/flashcards')) return 'flashcards';
     if (hash.includes('/dashboard/analytics')) return 'analytics';
+    if (hash.includes('/dashboard/exam')) return 'exam';
+    if (hash.includes('/dashboard/voice')) return 'voice';
     return 'metrics';
   };
 
@@ -322,6 +366,26 @@ export default function Dashboard({ currentUser, onBackToHome }) {
           AI Flashcard Hub
         </button>
         <button
+          onClick={() => window.location.hash = '#/dashboard/exam'}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
+            activePanel === 'exam'
+              ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/10'
+              : 'bg-slate-900/30 border-slate-900 text-slate-400 hover:border-slate-800'
+          }`}
+        >
+          <Timer className="w-3.5 h-3.5" /> Timed Exam Simulator
+        </button>
+        <button
+          onClick={() => window.location.hash = '#/dashboard/voice'}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
+            activePanel === 'voice'
+              ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/10'
+              : 'bg-slate-900/30 border-slate-900 text-slate-400 hover:border-slate-800'
+          }`}
+        >
+          <Mic className="w-3.5 h-3.5" /> Voice Socratic Tutor
+        </button>
+        <button
           onClick={() => window.location.hash = '#/dashboard/analytics'}
           className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
             activePanel === 'analytics'
@@ -485,13 +549,41 @@ export default function Dashboard({ currentUser, onBackToHome }) {
               </span>
             </div>
 
+            {/* Add Custom User Task Input Form */}
+            <form onSubmit={handleAddTask} className="flex gap-2 mb-5">
+              <input 
+                type="text" 
+                value={newTaskText}
+                onChange={(e) => setNewTaskText(e.target.value)}
+                placeholder="Add your own custom task for today..."
+                className="flex-1 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-850 text-xs text-white focus:outline-none focus:border-blue-500 font-medium"
+              />
+              <select
+                value={newTaskCategory}
+                onChange={(e) => setNewTaskCategory(e.target.value)}
+                className="px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-850 text-xs text-slate-300 focus:outline-none"
+              >
+                <option value="General">General</option>
+                <option value="AI">AI</option>
+                <option value="Physics">Physics</option>
+                <option value="Math">Math</option>
+                <option value="Exam">Exam</option>
+              </select>
+              <button 
+                type="submit" 
+                className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center gap-1 shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add
+              </button>
+            </form>
+
             {/* Checklist elements */}
-            <div className="space-y-3.5 mb-6">
+            <div className="space-y-3.5 mb-6 max-h-72 overflow-y-auto pr-1">
               {tasks.map(task => (
-                <button 
+                <div 
                   key={task.id}
                   onClick={() => toggleTask(task.id)}
-                  className={`w-full flex items-center gap-3.5 p-3.5 rounded-xl border text-left transition-all ${
+                  className={`w-full flex items-center gap-3.5 p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                     task.completed 
                       ? 'bg-slate-900/20 border-slate-900 text-slate-500 line-through' 
                       : 'bg-slate-900/40 border-slate-800/80 text-slate-200 hover:border-slate-700/80'
@@ -510,8 +602,17 @@ export default function Dashboard({ currentUser, onBackToHome }) {
                       {task.category}
                     </span>
                   </div>
-                </button>
+                  <button
+                    onClick={(e) => handleDeleteTask(task.id, e)}
+                    className="p-1 text-slate-600 hover:text-rose-400 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               ))}
+              {tasks.length === 0 && (
+                <p className="text-center py-4 text-xs text-slate-500">No tasks in today's plan yet. Add one above!</p>
+              )}
             </div>
 
             {/* Micro-Progress bar */}
@@ -827,6 +928,10 @@ export default function Dashboard({ currentUser, onBackToHome }) {
         <SubjectExplorer currentUser={currentUser} />
       ) : activePanel === 'flashcards' ? (
         <FlashcardHub currentUser={currentUser} />
+      ) : activePanel === 'exam' ? (
+        <ExamSimulator />
+      ) : activePanel === 'voice' ? (
+        <VoiceTutor />
       ) : (
         <AnalyticsPanel studiedToday={studiedToday} weeklyHours={weeklyHours} weeklyGoal={weeklyGoal} />
       )}

@@ -49,6 +49,7 @@ export default function SubjectExplorer({ currentUser }) {
 
   // Reader Modal State
   const [activeMaterial, setActiveMaterial] = useState(null);
+  const [selectedText, setSelectedText] = useState('');
 
   // Gradient Color Options for Subjects
   const colorGradients = [
@@ -993,10 +994,53 @@ export default function SubjectExplorer({ currentUser }) {
                 </button>
               </div>
 
-              {/* Viewer Content */}
-              <div className="overflow-y-auto max-h-[45vh] pr-2 text-sm text-slate-350 leading-relaxed font-normal">
+              {/* Viewer Content with Text Selection Annotator */}
+              <div 
+                onMouseUp={(e) => {
+                  const selection = window.getSelection();
+                  const text = selection ? selection.toString().trim() : '';
+                  if (text.length > 3) {
+                    setSelectedText(text);
+                  }
+                }}
+                className="overflow-y-auto max-h-[45vh] pr-2 text-sm text-slate-350 leading-relaxed font-normal relative"
+              >
+                {selectedText && (
+                  <div className="mb-4 p-3 rounded-2xl bg-studio-purple/20 border border-studio-purple flex items-center justify-between gap-3 animate-in fade-in duration-200">
+                    <span className="text-xs text-white font-mono truncate max-w-xs italic">
+                      "{selectedText.substring(0, 50)}..."
+                    </span>
+                    <button
+                      onClick={async () => {
+                        const token = localStorage.getItem('token');
+                        if (!token) return alert("Please log in to generate flashcards.");
+                        try {
+                          await fetch(`${API_URL}/api/flashcards/generate`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                              title: `Annotated: ${activeMaterial.name}`,
+                              text: selectedText
+                            })
+                          });
+                          alert("⚡ 1-Click Flashcard Set generated successfully!");
+                          setSelectedText('');
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-studio-purple text-white text-xs font-bold hover:bg-studio-purpleHover flex items-center gap-1 shrink-0"
+                    >
+                      ⚡ 1-Click Flashcard
+                    </button>
+                  </div>
+                )}
+
                 {activeMaterial.type === 'note' ? (
-                  <p className="whitespace-pre-line bg-slate-900/30 border border-slate-900 p-5 rounded-2xl">
+                  <p className="whitespace-pre-line bg-slate-900/30 border border-slate-900 p-5 rounded-2xl select-text">
                     {activeMaterial.content || 'This note contains no body text.'}
                   </p>
                 ) : (
@@ -1013,7 +1057,10 @@ export default function SubjectExplorer({ currentUser }) {
 
             <div className="mt-8 pt-4 border-t border-slate-900 text-right">
               <button 
-                onClick={() => setActiveMaterial(null)}
+                onClick={() => {
+                  setActiveMaterial(null);
+                  setSelectedText('');
+                }}
                 className="px-5 py-2 bg-slate-900 hover:bg-slate-850 border border-slate-850 text-slate-300 font-bold rounded-xl text-xs transition-all"
               >
                 Close Viewer

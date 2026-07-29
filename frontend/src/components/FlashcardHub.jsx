@@ -221,6 +221,32 @@ export default function FlashcardHub({ currentUser }) {
     localStorage.setItem('lecturemind_guest_flashcards', JSON.stringify(updatedSets));
   };
 
+  const handleSm2Review = async (cardId, rating) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        await fetch(`${API_URL}/api/flashcards/${cardId}/review`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ rating })
+        });
+      } catch (e) {
+        console.error('SM2 review error:', e);
+      }
+    }
+    setIsFlipped(false);
+    setShowHint(false);
+    if (currentCardIndex < (shuffledCards.length || activeSet?.cards?.length || 1) - 1) {
+      setCurrentCardIndex(prev => prev + 1);
+    } else {
+      alert("Spaced Repetition Review Complete!");
+      setCurrentCardIndex(0);
+    }
+  };
+
   // AI Flashcard Generation handler
   const handleGenerateFlashcards = async (e) => {
     e.preventDefault();
@@ -709,6 +735,7 @@ export default function FlashcardHub({ currentUser }) {
               <div className="flex gap-2 bg-slate-950 p-1 rounded-xl border border-slate-900">
                 {[
                   { id: 'flip', name: 'Flip' },
+                  { id: 'spaced', name: 'SM-2 Spaced' },
                   { id: 'timed', name: 'Timed' },
                   { id: 'exam', name: 'Exam' }
                 ].map(mode => (
@@ -926,6 +953,40 @@ export default function FlashcardHub({ currentUser }) {
                         Shuffle Card Deck
                       </button>
                     </div>
+
+                    {/* SM-2 Spaced Repetition Evaluation Rating Buttons */}
+                    {studyMode === 'spaced' && isFlipped && (
+                      <div className="flex items-center justify-center gap-2 mt-4 animate-in fade-in duration-200">
+                        <button
+                          onClick={() => handleSm2Review(filteredCards[currentCardIndex].id, 'again')}
+                          className="px-4 py-2 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs font-bold hover:bg-rose-900 transition-all flex flex-col items-center"
+                        >
+                          Again
+                          <span className="text-[9px] opacity-75">&lt;1m</span>
+                        </button>
+                        <button
+                          onClick={() => handleSm2Review(filteredCards[currentCardIndex].id, 'hard')}
+                          className="px-4 py-2 rounded-xl bg-amber-950/60 border border-amber-800 text-amber-300 text-xs font-bold hover:bg-amber-900 transition-all flex flex-col items-center"
+                        >
+                          Hard
+                          <span className="text-[9px] opacity-75">1d</span>
+                        </button>
+                        <button
+                          onClick={() => handleSm2Review(filteredCards[currentCardIndex].id, 'good')}
+                          className="px-4 py-2 rounded-xl bg-blue-950/60 border border-blue-800 text-blue-300 text-xs font-bold hover:bg-blue-900 transition-all flex flex-col items-center"
+                        >
+                          Good
+                          <span className="text-[9px] opacity-75">3d</span>
+                        </button>
+                        <button
+                          onClick={() => handleSm2Review(filteredCards[currentCardIndex].id, 'easy')}
+                          className="px-4 py-2 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-xs font-bold hover:bg-emerald-900 transition-all flex flex-col items-center"
+                        >
+                          Easy
+                          <span className="text-[9px] opacity-75">6d</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 

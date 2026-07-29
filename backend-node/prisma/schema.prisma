@@ -5,7 +5,8 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x", "linux-musl-arm64-openssl-1.1.x"]
 }
 
 model User {
@@ -24,6 +25,8 @@ model User {
   weeklyGoal                Float          @default(20.0)
   subjects                  Subject[]
   flashcardSets             FlashcardSet[]
+  quizzes                   Quiz[]
+  quizSubmissions           QuizSubmission[]
   createdAt                 DateTime       @default(now())
   updatedAt                 DateTime       @updatedAt
 }
@@ -95,6 +98,36 @@ model Flashcard {
   difficulty String       @default("medium") // 'easy' | 'medium' | 'hard'
   tags       String       @default("") // Subject tags
   bookmarked Boolean      @default(false)
+  // SM-2 Spaced Repetition parameters
+  interval   Int          @default(1)    // Days until next review
+  repetition Int          @default(0)    // Number of consecutive successful reviews
+  easeFactor Float        @default(2.5)  // Difficulty multiplier
+  dueDate    DateTime     @default(now())// Scheduled review date
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
+}
+
+model Quiz {
+  id          String           @id @default(uuid())
+  title       String
+  timeLimit   Int              @default(15) // in minutes
+  questions   String           // JSON string of questions
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submissions QuizSubmission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model QuizSubmission {
+  id        String   @id @default(uuid())
+  quizId    String
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score     Float
+  total     Int
+  answers   String   // JSON string of user's answers
+  feedback  String   // JSON string of AI feedback explanations
+  createdAt DateTime @default(now())
 }

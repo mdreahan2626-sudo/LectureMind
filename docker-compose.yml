@@ -1,0 +1,108 @@
+services:
+  gateway:
+    build:
+      context: ./backend-node
+      dockerfile: Dockerfile
+    container_name: lecturemind-gateway
+    ports:
+      - "5001:5001"
+    command: node services/gateway/server.js
+    env_file:
+      - ./backend-node/.env
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:5011
+      - USER_SERVICE_URL=http://user-service:5012
+      - SUBJECTS_SERVICE_URL=http://subjects-service:5013
+      - FLASHCARDS_SERVICE_URL=http://flashcards-service:5014
+      - AI_SERVICE_URL=http://ai-service:5015
+    depends_on:
+      - auth-service
+      - user-service
+      - subjects-service
+      - flashcards-service
+      - ai-service
+    networks:
+      - lecturemind-net
+
+  auth-service:
+    build:
+      context: ./backend-node
+      dockerfile: Dockerfile
+    container_name: lecturemind-auth
+    ports:
+      - "5011:5011"
+    command: node services/auth-service/server.js
+    env_file:
+      - ./backend-node/.env
+    networks:
+      - lecturemind-net
+
+  user-service:
+    build:
+      context: ./backend-node
+      dockerfile: Dockerfile
+    container_name: lecturemind-user
+    ports:
+      - "5012:5012"
+    command: node services/user-service/server.js
+    env_file:
+      - ./backend-node/.env
+    networks:
+      - lecturemind-net
+
+  subjects-service:
+    build:
+      context: ./backend-node
+      dockerfile: Dockerfile
+    container_name: lecturemind-subjects
+    ports:
+      - "5013:5013"
+    command: node services/subjects-service/server.js
+    env_file:
+      - ./backend-node/.env
+    networks:
+      - lecturemind-net
+
+  flashcards-service:
+    build:
+      context: ./backend-node
+      dockerfile: Dockerfile
+    container_name: lecturemind-flashcards
+    ports:
+      - "5014:5014"
+    command: node services/flashcards-service/server.js
+    env_file:
+      - ./backend-node/.env
+    networks:
+      - lecturemind-net
+
+  ai-service:
+    build:
+      context: ./backend-node
+      dockerfile: Dockerfile
+    container_name: lecturemind-ai
+    ports:
+      - "5015:5015"
+    command: node services/ai-service/server.js
+    env_file:
+      - ./backend-node/.env
+    networks:
+      - lecturemind-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: lecturemind-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:5001
+    depends_on:
+      - gateway
+    networks:
+      - lecturemind-net
+
+networks:
+  lecturemind-net:
+    driver: bridge
