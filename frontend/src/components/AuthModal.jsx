@@ -55,7 +55,15 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type');
+      let data = {};
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.error('[Auth Service Error]:', text);
+        throw new Error(`Backend service unreachable (${response.status}). Please check that API Gateway (port 5001) & Auth Service (port 5011) are running.`);
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Something went wrong');

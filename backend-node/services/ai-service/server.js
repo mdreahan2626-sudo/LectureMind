@@ -6,6 +6,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env'
 const prisma = require('../../prisma');
 const auth = require('../../middleware/auth');
 const { generateFlashcards } = require('../../utils/ai');
+const rag = require('../../utils/rag');
 
 const app = express();
 const PORT = process.env.AI_PORT || 5015;
@@ -301,34 +302,101 @@ app.post('/api/lectures', async (req, res) => {
   }
 });
 
-// 4. Chat with lecture
+// 4. RAG Indexing Endpoint (Chunk & Embed lecture material)
+app.post('/api/rag/index', async (req, res) => {
+  const { text, title } = req.body;
+  if (!text) {
+    return res.status(400).json({ error: 'Lecture content text is required for RAG indexing.' });
+  }
+
+  try {
+    const indexedChunks = await rag.indexDocument(text, title || 'Lecture Notes', aiClient);
+    res.json({
+      success: true,
+      message: `Document successfully split into ${indexedChunks.length} chunks and embedded into vector space.`,
+      chunkCount: indexedChunks.length,
+      chunks: indexedChunks.map(c => ({
+        id: c.id,
+        title: c.title,
+        wordCount: c.wordCount,
+        snippet: c.text.substring(0, 100) + '...',
+        embeddingDimensions: c.embedding.length
+      }))
+    });
+  } catch (error) {
+    console.error('RAG Index error:', error);
+    res.status(500).json({ error: 'Failed to chunk and embed lecture document.' });
+  }
+});
+
+// 5. RAG Semantic Search Query Endpoint
+app.post('/api/rag/query', async (req, res) => {
+  const { query, text, topK } = req.body;
+  if (!query || !text) {
+    return res.status(400).json({ error: 'Both query and document text are required.' });
+  }
+
+  try {
+    const indexedChunks = await rag.indexDocument(text, 'Lecture Notes', aiClient);
+    const topMatchChunks = await rag.searchSimilarChunks(query, indexedChunks, topK || 3, aiClient);
+    res.json({
+      success: true,
+      query: query,
+      retrievedCount: topMatchChunks.length,
+      chunks: topMatchChunks
+    });
+  } catch (error) {
+    console.error('RAG Query error:', error);
+    res.status(500).json({ error: 'Failed to search similar chunks.' });
+  }
+});
+
+// 6. RAG-Augmented Chat with lecture
 app.post('/api/chat', async (req, res) => {
-  const { message, context } = req.body;
+  const { message, context, topK } = req.body;
   if (!message || !context) {
     return res.status(400).json({ error: 'Message and lecture context are required.' });
   }
 
-  if (!aiClient) {
-    return res.json({ reply: 'Study Buddy: AI Service is in offline sandbox fallback mode. Let me know how I can guide you through this topic!' });
-  }
-
   try {
-    const model = aiClient.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const prompt = `You are a helpful Socratic study buddy. Answer the student's question based strictly on the provided lecture context.
+    // 1. RAG Chunking and Indexing
+    const indexedChunks = await rag.indexDocument(context, 'Lecture Context', aiClient);
     
-    Lecture Context:
-    ${context}
-    
-    Student Question:
-    ${message}
-    
-    Study Buddy Response:`;
+    // 2. RAG Semantic Search Retrieval
+    const retrievedChunks = await rag.searchSimilarChunks(message, indexedChunks, topK || 3, aiClient);
 
-    const result = await model.generateContent(prompt);
-    res.json({ reply: result.response.text() });
+    // 3. Fallback check for AI client
+    if (!aiClient) {
+      const topContextSnippet = retrievedChunks.length > 0 ? retrievedChunks[0].text : context.substring(0, 200);
+      return res.json({
+        reply: `[RAG Sandbox Mode]\nBased on retrieved passage chunk [Chunk 1] (Confidence: ${retrievedChunks[0]?.confidencePct || 85}%):\n"${topContextSnippet.substring(0, 150)}..."\n\nHow can I help you explore this topic further?`,
+        rag: {
+          enabled: true,
+          mode: 'sandbox_vectorizer',
+          retrievedCount: retrievedChunks.length,
+          retrievedChunks: retrievedChunks
+        }
+      });
+    }
+
+    // 4. RAG Prompt Synthesis & LLM Call
+    const ragPrompt = rag.buildRAGPrompt(message, retrievedChunks);
+    const model = aiClient.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(ragPrompt);
+    const replyText = result.response.text();
+
+    res.json({
+      reply: replyText,
+      rag: {
+        enabled: true,
+        mode: 'gemini_vector_embedding',
+        retrievedCount: retrievedChunks.length,
+        retrievedChunks: retrievedChunks
+      }
+    });
   } catch (error) {
-    console.error('Chat error:', error);
-    res.status(500).json({ error: 'Server error during chat response.' });
+    console.error('RAG Chat error:', error);
+    res.status(500).json({ error: 'Server error during RAG chat response.' });
   }
 });
 

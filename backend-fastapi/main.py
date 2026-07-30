@@ -110,25 +110,137 @@ async def process_file(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# RAG Helper Functions for Python FastAPI
+import math
+import re
+
+def chunk_text_py(text: str, max_words: int = 250, overlap_words: int = 40):
+    clean_text = re.sub(r'\s+', ' ', text).strip()
+    words = clean_text.split(' ')
+    if len(words) <= max_words:
+        return [{"id": 1, "text": clean_text, "wordCount": len(words)}]
+    
+    chunks = []
+    start = 0
+    chunk_id = 1
+    while start < len(words):
+        end = min(start + max_words, len(words))
+        chunk_words = words[start:end]
+        chunks.append({
+            "id": chunk_id,
+            "text": " ".join(chunk_words),
+            "wordCount": len(chunk_words)
+        })
+        chunk_id += 1
+        if end >= len(words):
+            break
+        start += (max_words - overlap_words)
+    return chunks
+
+def cosine_similarity_py(vec_a, vec_b):
+    if not vec_a or not vec_b or len(vec_a) != len(vec_b):
+        return 0.0
+    dot = sum(a * b for a, b in zip(vec_a, vec_b))
+    norm_a = math.sqrt(sum(a * a for a in vec_a))
+    norm_b = math.sqrt(sum(b * b for b in vec_b))
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return dot / (norm_a * norm_b)
+
+def fallback_vector_py(text: str, size: int = 128):
+    vec = [0.0] * size
+    tokens = re.findall(r'\b[a-z0-9]+\b', text.lower())
+    for t in tokens:
+        idx = abs(hash(t)) % size
+        vec[idx] += 1.0
+    norm = math.sqrt(sum(v * v for v in vec))
+    return [v / norm for v in vec] if norm > 0 else vec
+
+def get_embedding_py(text: str):
+    if GEMINI_API_KEY:
+        try:
+            res = genai.embed_content(model="models/text-embedding-004", content=text)
+            if "embedding" in res and res["embedding"]:
+                return res["embedding"]
+        except Exception as e:
+            print(f"[FastAPI RAG Embedder] Warning: Gemini embedding failed, using fallback: {e}")
+    return fallback_vector_py(text)
+
+class RAGQueryRequest(BaseModel):
+    query: str
+    text: str
+    top_k: Optional[int] = 3
+
+@app.post("/api/rag/query")
+async def rag_query(payload: RAGQueryRequest):
+    chunks = chunk_text_py(payload.text)
+    query_vec = get_embedding_py(payload.query)
+    scored = []
+    for c in chunks:
+        c_vec = get_embedding_py(c["text"])
+        score = cosine_similarity_py(query_vec, c_vec)
+        scored.append({
+            "id": c["id"],
+            "text": c["text"],
+            "similarityScore": round(score, 3),
+            "confidencePct": min(100, max(0, int(score * 100)))
+        })
+    scored.sort(key=lambda x: x["similarityScore"], reverse=True)
+    return {"query": payload.query, "retrievedCount": len(scored[:payload.top_k]), "chunks": scored[:payload.top_k]}
+
 @app.post("/api/chat")
 async def chat_with_lecture(payload: ChatRequest):
     """
-    Ask questions about the lecture material using context.
+    RAG-Augmented question answering over lecture context.
     """
-    if not GEMINI_API_KEY:
-        raise HTTPException(status_code=500, detail="Gemini API Key is not configured on the server.")
-    
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        prompt = (
-            f"You are a helpful study buddy. Answer the student's question based strictly on the provided lecture context.\n"
-            f"If the answer is not in the context, guide them using general knowledge but clearly state that it wasn't in the lecture.\n\n"
-            f"Lecture Context:\n{payload.context}\n\n"
-            f"Student Question: {payload.message}\n"
-            f"Response:"
+        # 1. RAG Chunking
+        chunks = chunk_text_py(payload.context)
+        query_vec = get_embedding_py(payload.message)
+        
+        # 2. Vector Retrieval
+        scored = []
+        for c in chunks:
+            c_vec = get_embedding_py(c["text"])
+            score = cosine_similarity_py(query_vec, c_vec)
+            scored.append({
+                "id": c["id"],
+                "text": c["text"],
+                "similarityScore": round(score, 3),
+                "confidencePct": min(100, max(0, int(score * 100)))
+            })
+        scored.sort(key=lambda x: x["similarityScore"], reverse=True)
+        retrieved = scored[:3]
+
+        if not GEMINI_API_KEY:
+            top_snippet = retrieved[0]["text"] if retrieved else payload.context[:200]
+            return {
+                "reply": f"[RAG Sandbox Mode]\nBased on retrieved passage [Chunk 1] (Confidence: {retrieved[0]['confidencePct'] if retrieved else 85}%):\n\"{top_snippet[:150]}...\"\n\nHow can I assist you further?",
+                "rag": {"enabled": True, "mode": "sandbox_vectorizer", "retrievedChunks": retrieved}
+            }
+
+        # 3. RAG Augmented Prompt Synthesis
+        context_block = "\n\n".join([f"--- [Chunk {i+1}] (Confidence: {c['confidencePct']}%)\n{c['text']}" for i, c in enumerate(retrieved)])
+        rag_prompt = (
+            f"You are a helpful Socratic AI study tutor equipped with Retrieval-Augmented Generation (RAG).\n"
+            f"Answer the student's question strictly using the retrieved context chunks below.\n"
+            f"Cite specific chunks using [Chunk 1], [Chunk 2] in your answer.\n\n"
+            f"RETRIEVED LECTURE CHUNKS:\n{context_block}\n\n"
+            f"STUDENT QUESTION: {payload.message}\n"
+            f"STUDENT TUTOR RESPONSE:"
         )
-        response = model.generate_content(prompt)
-        return {"reply": response.text}
+
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(rag_prompt)
+        return {
+            "reply": response.text,
+            "rag": {
+                "enabled": True,
+                "mode": "gemini_vector_embedding",
+                "retrievedCount": len(retrieved),
+                "retrievedChunks": retrieved
+            }
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

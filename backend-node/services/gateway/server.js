@@ -81,6 +81,7 @@ app.use('/api/flashcards', proxyTo(SERVICES.FLASHCARDS));
 app.use('/api/ai', proxyTo(SERVICES.AI));
 app.use('/api/lectures', proxyTo(SERVICES.AI));
 app.use('/api/chat', proxyTo(SERVICES.AI));
+app.use('/api/rag', proxyTo(SERVICES.AI));
 app.use('/api/summarize-text', proxyTo(SERVICES.AI));
 
 app.listen(PORT, () => {

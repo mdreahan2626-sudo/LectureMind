@@ -72,7 +72,7 @@ export default function VoiceTutor({ contextText = "Neural Networks and Deep Lea
       const data = await res.json();
       const reply = data.reply || 'Let us break down this concept step by step. What is your understanding of it?';
 
-      setMessages([...newMessages, { sender: 'bot', text: reply }]);
+      setMessages([...newMessages, { sender: 'bot', text: reply, rag: data.rag }]);
       speakResponse(reply);
     } catch (err) {
       console.error('Voice chat error:', err);
@@ -221,7 +221,28 @@ export default function VoiceTutor({ contextText = "Neural Networks and Deep Lea
                 ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-br-none shadow-lg shadow-violet-600/20'
                 : 'bg-slate-900/80 border border-slate-800 text-slate-200 rounded-bl-none shadow-md'
             }`}>
-              {m.text}
+              <p>{m.text}</p>
+
+              {/* RAG Vector Context Citations */}
+              {m.rag && m.rag.retrievedChunks && m.rag.retrievedChunks.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-slate-800/80">
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-cyan-400 font-bold mb-1.5">
+                    <Sparkles className="w-3 h-3 text-cyan-300" />
+                    <span>RAG VECTOR SEARCH RETRIEVED {m.rag.retrievedChunks.length} CONTEXT CHUNKS:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {m.rag.retrievedChunks.map((chunk, cIdx) => (
+                      <span 
+                        key={cIdx} 
+                        title={chunk.text}
+                        className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-700/40 text-cyan-200 flex items-center gap-1"
+                      >
+                        [Chunk {cIdx + 1}] Similarity: <strong className="text-emerald-400">{chunk.confidencePct}%</strong>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ))}
