@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: lecturemind-gateway
     ports:
-      - "5001:5001"
+      - "5050:5001"
     command: node services/gateway/server.js
     env_file:
       - ./backend-node/.env
@@ -97,7 +97,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=http://localhost:5001
+      - VITE_API_URL=http://localhost:5050
     depends_on:
       - gateway
     networks:
