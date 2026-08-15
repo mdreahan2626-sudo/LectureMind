@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 
 const app = express();
@@ -8,53 +9,54 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
-// Proxy Helper using native fetch
-const proxyTo = (targetBaseUrl) => async (req, res) => {
-  const url = `${targetBaseUrl}${req.originalUrl}`;
-  try {
-    const headers = { ...req.headers };
-    delete headers.host;
-    delete headers['content-length']; // let fetch compute content-length for stringified body
+// Proxy Helper using Node's built-in http module (avoids fetch issues in forked processes)
+const proxyTo = (targetBaseUrl) => (req, res) => {
+  const targetUrl = new URL(`${targetBaseUrl}${req.originalUrl}`);
+  const body = (req.method !== 'GET' && req.method !== 'HEAD') ? JSON.stringify(req.body) : null;
 
-    const options = {
-      method: req.method,
-      headers: headers,
-    };
+  const headers = { ...req.headers };
+  delete headers.host;
+  if (body) {
+    headers['content-type'] = 'application/json';
+    headers['content-length'] = Buffer.byteLength(body);
+  } else {
+    delete headers['content-length'];
+  }
 
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      options.body = JSON.stringify(req.body);
-    }
+  const options = {
+    hostname: targetUrl.hostname,
+    port: targetUrl.port,
+    path: targetUrl.pathname + targetUrl.search,
+    method: req.method,
+    headers,
+  };
 
-    const response = await fetch(url, options);
-    
-    // Set headers
-    response.headers.forEach((value, key) => {
+  const proxyReq = http.request(options, (proxyRes) => {
+    res.status(proxyRes.statusCode);
+    Object.entries(proxyRes.headers).forEach(([key, value]) => {
       res.setHeader(key, value);
     });
+    proxyRes.pipe(res, { end: true });
+  });
 
-    res.status(response.status);
-
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      const data = await response.json();
-      res.json(data);
-    } else {
-      const text = await response.text();
-      res.send(text);
+  proxyReq.on('error', (error) => {
+    console.error(`[Gateway Proxy] Error forwarding ${req.method} ${req.originalUrl} -> ${targetBaseUrl}${req.originalUrl}:`, error.message);
+    if (!res.headersSent) {
+      res.status(502).json({ error: `Bad Gateway. Failed to reach service: ${targetBaseUrl}` });
     }
-  } catch (error) {
-    console.error(`[Gateway Proxy] Error forwarding ${req.method} ${req.originalUrl} -> ${url}:`, error.message);
-    res.status(502).json({ error: `Bad Gateway. Failed to reach service: ${targetBaseUrl}` });
-  }
+  });
+
+  if (body) proxyReq.write(body);
+  proxyReq.end();
 };
 
 // Target Microservices URLs (configured via env in Docker, fallbacks to localhost)
 const SERVICES = {
-  AUTH: process.env.AUTH_SERVICE_URL || 'http://localhost:5011',
-  USER: process.env.USER_SERVICE_URL || 'http://localhost:5012',
-  SUBJECTS: process.env.SUBJECTS_SERVICE_URL || 'http://localhost:5013',
-  FLASHCARDS: process.env.FLASHCARDS_SERVICE_URL || 'http://localhost:5014',
-  AI: process.env.AI_SERVICE_URL || 'http://localhost:5015'
+  AUTH: process.env.AUTH_SERVICE_URL || 'http://127.0.0.1:5011',
+  USER: process.env.USER_SERVICE_URL || 'http://127.0.0.1:5012',
+  SUBJECTS: process.env.SUBJECTS_SERVICE_URL || 'http://127.0.0.1:5013',
+  FLASHCARDS: process.env.FLASHCARDS_SERVICE_URL || 'http://127.0.0.1:5014',
+  AI: process.env.AI_SERVICE_URL || 'http://127.0.0.1:5015'
 };
 
 // Gateway Health Check
