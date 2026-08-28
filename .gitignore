@@ -15,6 +15,7 @@ frontend/dist/
 # OS files
 .DS_Store
 
-# IDE configs
-.vscode/
-.idea/
+# Database files
+*.db
+*.db-journal
+backend-node/prisma/*.db

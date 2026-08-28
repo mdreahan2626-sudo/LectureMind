@@ -14,65 +14,52 @@ import {
   FolderUp, 
   ChevronLeft, 
   ChevronRight,
-  Flame,
   Lightbulb,
-  BookOpen
+  BookOpen,
+  Sparkles
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const SAMPLE_LECTURES = {
   audio: {
-    title: "Deep Learning Foundations (Lec 4).mp3",
+    title: "Deep Learning Foundations (Lecture 4).mp3",
     type: "audio",
     size: "42.8 MB",
     duration: "54 mins",
-    summary: "This lecture lays the foundations of Deep Learning. It covers artificial neural networks (ANNs), focusing on how multi-layer perceptrons learn hierarchical representations of data. The instructor explains structural elements (input layers, hidden representation layers, output layers), backward propagation of error gradients, and the activation math behind ReLU, Sigmoid, and Tanh. Key highlights include mitigating vanishing gradients using modern optimizers (Adam) and setting appropriate learning rates.",
+    summary: "This lecture introduces the mathematical foundations of Deep Learning, contrasting traditional machine learning with hierarchical representation learning in multi-layer perceptrons. The instructor details forward propagation, loss calculation, backward propagation of error gradients via the chain rule, and non-linear activation functions (ReLU, Sigmoid, Tanh). Key discussion points include mitigating vanishing gradients and learning rate schedules.",
     keyTakeaways: [
-      { term: "Deep Learning", desc: "A subset of machine learning based on artificial neural networks with representation learning." },
-      { term: "Backpropagation", desc: "The algorithm used to calculate the gradient of the loss function with respect to the network weights." },
-      { term: "Activation Function", desc: "Introduces non-linearity to the network, enabling it to solve complex, non-linear classification problems." },
-      { term: "Vanishing Gradients", desc: "A scenario where gradients become extremely small during backprop, halting network parameter updates." }
+      { term: "Deep Learning", desc: "A subset of machine learning using multi-layered artificial neural networks to learn representations from raw data." },
+      { term: "Backpropagation", desc: "The algorithm that calculates partial derivatives of the loss function with respect to weights using the chain rule." },
+      { term: "Activation Function", desc: "Introduces non-linearity, allowing deep networks to approximate complex mathematical decision boundaries." },
+      { term: "Vanishing Gradients", desc: "A training issue where gradient signals shrink exponentially in early layers, stalling parameter updates." }
     ],
     flashcards: [
-      { front: "What does ReLU stand for and what is its equation?", back: "Rectified Linear Unit. Equation: f(x) = max(0, x). It returns 0 for negative values and the value itself for positive ones." },
-      { front: "Why do we add non-linearity to neural network nodes?", back: "Without non-linear activations, multiple dense layers collapse into a single linear transformation, preventing the network from learning complex features." },
-      { front: "Explain the role of the Optimizer in Deep Learning.", back: "It updates the weights and biases based on the computed gradients to minimize the loss function. Popular methods include Adam, RMSprop, and SGD." },
-      { front: "What is overfitting and how is it addressed?", back: "When a model learns training data noise too well, failing on unseen data. Solved via regularization (L1/L2), Dropout, or Early Stopping." }
+      { front: "What is ReLU and its mathematical formula?", back: "Rectified Linear Unit: f(x) = max(0, x). It returns 0 for negative values and passes positive values unchanged." },
+      { front: "Why are non-linear activation functions necessary in multi-layer networks?", back: "Without non-linear activations, multiple linear layers collapse into a single matrix multiplication, unable to learn non-linear boundaries." },
+      { front: "What role does an optimizer play during network training?", back: "It updates model weights and biases based on calculated gradients to minimize the objective loss function (e.g. Adam, SGD)." },
+      { front: "What is overfitting and how can it be mitigated?", back: "When a model memorizes training noise instead of general patterns. Addressed via dropout, L1/L2 regularization, and early stopping." }
     ],
     mindmap: {
       label: "Deep Learning",
       children: [
         {
-          label: "Core Architecture",
-          children: ["Input Features", "Hidden Neurons", "Output Classification"]
+          label: "Architecture",
+          children: ["Input Features", "Hidden Layers", "Output Neurons"]
         },
         {
           label: "Optimization",
-          children: ["Loss Minimization", "Backprop Math", "Adam / SGD Weights"]
+          children: ["Loss Metric", "Chain Rule Gradients", "Adam Optimizer"]
         },
         {
           label: "Activations",
-          children: ["ReLU (Linear)", "Sigmoid (Logistic)", "Softmax (Probability)"]
+          children: ["ReLU Function", "Sigmoid Curve", "Softmax Layer"]
         }
       ]
     },
-    quiz: [
-      {
-        question: "Which activation function helps prevent vanishing gradients during deep backpropagation?",
-        options: ["Sigmoid", "ReLU", "Step function", "Linear"],
-        answer: 1,
-        explanation: "ReLU outputs a gradient of 1 for all inputs > 0, keeping gradient flow healthy compared to Sigmoid which saturates near 0 and 1."
-      },
-      {
-        question: "What does the learning rate hyperparameter control?",
-        options: ["The speed of forward propagation", "The depth of the hidden layers", "The step size taken towards loss minimization", "The rate of file uploads"],
-        answer: 2,
-        explanation: "The learning rate dictates how large a step the optimizer takes during weight updates. Too large causes divergence; too small slows convergence."
-      }
-    ],
-    faqs: [
-      { q: "Is Deep Learning different from Machine Learning?", a: "Yes, DL is a subfield of ML. Traditional ML requires manual feature engineering, whereas DL models learn feature representations automatically from raw data." },
-      { q: "What is backpropagation?", a: "It is shorthand for 'backward propagation of errors', where gradients are calculated via the chain rule starting from the loss function back to initial inputs." }
+    suggestedQuestions: [
+      "Why does ReLU prevent vanishing gradients?",
+      "How does backpropagation calculate weights?",
+      "What is the difference between ML and Deep Learning?"
     ]
   },
   document: {
@@ -80,69 +67,63 @@ const SAMPLE_LECTURES = {
     type: "document",
     size: "8.4 MB",
     duration: "45 pages",
-    summary: "This text provides an introduction to Quantum Mechanics, focusing on the historical transition from classical physics to quantum theory. It introduces wave-particle duality, Planck's constant, and the photo-electric effect. The core of the reading centers around the Schrödinger Wave Equation (both time-dependent and time-independent) which describes the probability wave function of a particle. It explains quantum superposition, state collapses, tunneling, and Heisenberg's Uncertainty Principle.",
+    summary: "An introduction to non-relativistic Quantum Mechanics, reviewing the transition from classical physics. It covers wave-particle duality, Planck's constant, and the photoelectric effect. The core of the chapter examines the Schrödinger Wave Equation, probability density interpretations, quantum superposition, and Heisenberg's Uncertainty Principle.",
     keyTakeaways: [
-      { term: "Wave-Particle Duality", desc: "The concept that every particle or quantum entity may be described as either a particle or a wave." },
-      { term: "Schrödinger Equation", desc: "A mathematical equation that describes the changes over time of a physical quantum state." },
-      { term: "Quantum Superposition", desc: "The capability of a quantum system to be in multiple states at the same time until it is measured." },
-      { term: "Uncertainty Principle", desc: "Heisenberg's law stating that it is impossible to simultaneously measure a particle's position and momentum with absolute precision." }
+      { term: "Wave-Particle Duality", desc: "The principle that quantum entities exhibit both wave-like and particle-like characteristics depending on observation." },
+      { term: "Schrödinger Equation", desc: "The differential equation governing the spatial and temporal evolution of a quantum state wave function." },
+      { term: "Quantum Superposition", desc: "The principle that a physical system exists as a linear combination of all valid states until measured." },
+      { term: "Uncertainty Principle", desc: "Heisenberg's theorem stating position and momentum cannot both be measured with arbitrary precision simultaneously." }
     ],
     flashcards: [
-      { front: "What does Planck's constant (h) represent?", back: "The quantum of electromagnetic action, linking the energy of a photon to its frequency: E = hf." },
-      { front: "What is the physical meaning of the wave function squared (|\u03c8|\u00b2)?", back: "It represents the probability density of finding a particle at a specific location in space and time." },
-      { front: "Explain Quantum Tunneling.", back: "A quantum phenomenon where a particle passes through a potential energy barrier that it classically shouldn't be able to cross." }
+      { front: "What does Planck's constant (h) link?", back: "It links photon frequency to energy: E = hf." },
+      { front: "What does the squared wave function (|ψ|²) represent?", back: "Max Born's interpretation: the spatial probability density of locating a particle." },
+      { front: "What is Quantum Tunneling?", back: "The phenomenon where a quantum particle penetrates a potential energy barrier higher than its kinetic energy." }
     ],
     mindmap: {
       label: "Quantum Mechanics",
       children: [
         {
-          label: "Core Principles",
-          children: ["Wave Duality", "Superposition State", "Tunneling Effect"]
+          label: "Principles",
+          children: ["Wave Duality", "Superposition", "Tunneling"]
         },
         {
           label: "Schrödinger Eq",
-          children: ["Time-Dependent", "Wave Function (\u03c8)", "Probability Density"]
+          children: ["Time-Dependent", "Wave Function (ψ)", "Probability Density"]
         },
         {
-          label: "Uncertainty Limit",
+          label: "Uncertainty",
           children: ["Position & Momentum", "Planck Constant (h)", "Measurement Collapse"]
         }
       ]
     },
-    quiz: [
-      {
-        question: "What does the squared wave function (|\u03c8|\u00b2) describe?",
-        options: ["Particle velocity", "Total kinetic energy", "Probability density of position", "Tunneling frequency"],
-        answer: 2,
-        explanation: "Max Born proposed that the square magnitude of the wave function represents the spatial probability density of locating the particle."
-      }
-    ],
-    faqs: [
-      { q: "What is superposition?", a: "Superposition means a particle exists in all possible configurations simultaneously. Only upon measurement does the wave function collapse into a single eigenvalue." }
+    suggestedQuestions: [
+      "What does the wave function collapse mean?",
+      "How does quantum tunneling occur?",
+      "What is the Born interpretation of |ψ|²?"
     ]
   },
   video: {
-    title: "Intro to Macroeconomics (Stanford Seminar).mp4",
+    title: "Macroeconomic Policy & Indicators.mp4",
     type: "video",
     size: "184.2 MB",
     duration: "1 hr 15 mins",
-    summary: "A comprehensive seminar covering Macroeconomic theory. It highlights the difference between microeconomics (individual agent decisions) and macroeconomics (national aggregate indicators). Key metrics explored include Gross Domestic Product (GDP), inflation measurements (Consumer Price Index), and unemployment rates. The lecture explains fiscal policies managed by government taxation/spending and monetary policies controlled by central banks through interest rates, discount rates, and money supply regulations.",
+    summary: "A university seminar examining national macroeconomic indicators and state intervention. Key topics include Gross Domestic Product (GDP), inflation measurements (Consumer Price Index), and labor statistics. The discussion contrasts fiscal policy managed by government expenditure with monetary policy executed by central banks via interest rates and reserve requirements.",
     keyTakeaways: [
-      { term: "Macroeconomics", desc: "The branch of economics dealing with the performance, structure, behavior, and decision-making of an economy as a whole." },
-      { term: "Gross Domestic Product (GDP)", desc: "The total monetary value of all finished goods and services produced within a country's borders in a specific time period." },
-      { term: "Fiscal Policy", desc: "The use of government revenue collection (taxation) and expenditure (spending) to influence the country's economy." },
-      { term: "Monetary Policy", desc: "The process by which a nation's central bank controls the money supply and interest rates to achieve economic stability." }
+      { term: "Macroeconomics", desc: "The study of aggregate economic performance, inflation rates, national output, and public fiscal structures." },
+      { term: "Gross Domestic Product (GDP)", desc: "The total market value of all finished goods and services produced within a country's borders in a given time period." },
+      { term: "Fiscal Policy", desc: "Government revenue collection (taxation) and expenditure (spending) used to influence aggregate demand." },
+      { term: "Monetary Policy", desc: "Central bank management of the money supply and lending interest rates to maintain price stability." }
     ],
     flashcards: [
-      { front: "What is the difference between real and nominal GDP?", back: "Nominal GDP is valued at current market prices, whereas Real GDP is adjusted for inflation using a base year's prices." },
-      { front: "How does inflation impact purchasing power?", back: "Inflation reduces the value of money, meaning each unit of currency buys a smaller percentage of goods and services." },
-      { front: "What are the primary tools of Monetary Policy?", back: "Open market operations, adjusting reserve requirements, and changing the federal funds discount rate." }
+      { front: "What is the difference between real and nominal GDP?", back: "Nominal GDP is evaluated at current prices, while Real GDP is adjusted for price changes using a base-year deflator." },
+      { front: "How does inflation affect currency purchasing power?", back: "Inflation erodes the purchasing power of money, requiring more currency units to acquire identical baskets of goods." },
+      { front: "What are the primary tools of Monetary Policy?", back: "Open market operations, reserve ratio adjustments, and policy discount interest rates." }
     ],
     mindmap: {
       label: "Macroeconomics",
       children: [
         {
-          label: "Economic Indicators",
+          label: "Indicators",
           children: ["Real/Nominal GDP", "Consumer Price Index", "Unemployment Rate"]
         },
         {
@@ -150,71 +131,59 @@ const SAMPLE_LECTURES = {
           children: ["Fiscal (Taxes/Spend)", "Monetary (Interest)", "Central Bank Actions"]
         },
         {
-          label: "Market Dynamics",
-          children: ["Aggregate Demand", "Inflation Forces", "Economic Cycles"]
+          label: "Market Forces",
+          children: ["Aggregate Demand", "Inflation Pressures", "Business Cycles"]
         }
       ]
     },
-    quiz: [
-      {
-        question: "Who controls monetary policy in the United States?",
-        options: ["The US Congress", "The Federal Reserve (Central Bank)", "The Department of the Treasury", "Commercial Banks"],
-        answer: 1,
-        explanation: "The Federal Reserve acts as the central bank of the US and is tasked with managing monetary policy to promote maximum employment and stable prices."
-      }
-    ],
-    faqs: [
-      { q: "What is GDP?", a: "GDP stands for Gross Domestic Product. It represents the total dollar value of all finished goods and services produced within a country over a specific time, usually measured quarterly or annually." }
+    suggestedQuestions: [
+      "How does real GDP differ from nominal GDP?",
+      "What tools do central banks use for monetary policy?",
+      "Why does inflation reduce purchasing power?"
     ]
   }
 };
 
 export default function InteractiveSandbox() {
-  const [selectedType, setSelectedType] = useState('audio'); // 'audio', 'document', 'video'
+  const [selectedType, setSelectedType] = useState('audio');
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [stageIndex, setStageIndex] = useState(0);
   const [isDone, setIsDone] = useState(false);
-  const [activeTab, setActiveTab] = useState('summary'); // 'summary', 'flashcards', 'mindmap', 'chat'
+  const [activeTab, setActiveTab] = useState('summary');
 
   // Flashcards state
   const [currentCardIdx, setCurrentCardIdx] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [masteredCards, setMasteredCards] = useState({}); // { cardIdx: true/false }
+  const [masteredCards, setMasteredCards] = useState({});
 
   // Chat simulator state
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  // Quiz state
-  const [selectedQuizAnswers, setSelectedQuizAnswers] = useState({}); // { questionIdx: optionIdx }
-  const [showQuizResults, setShowQuizResults] = useState(false);
-
   const activeLecture = SAMPLE_LECTURES[selectedType];
 
-  // Logs to show during AI simulation
-  const processingSteps = [
-    { pct: 10, text: "Ingesting raw media streams and optimizing compression..." },
-    { pct: 30, text: "Running speech-to-text algorithm and parsing transcript tags..." },
-    { pct: 50, text: "Formatting prompt contexts and querying Google Gemini 1.5 Flash API..." },
-    { pct: 70, text: "Extracting core entities, relationships, and key takeaways..." },
-    { pct: 85, text: "Generating structured flashcard decks and mind map connection nodes..." },
-    { pct: 95, text: "Validating output schema and writing assets to Express DB cache..." },
-    { pct: 100, text: "Compilation complete! Your study pack is ready." }
+  const stages = [
+    { label: "Transcribing audio & OCR parsing…", pct: 25 },
+    { label: "Extracting concepts & terminology hierarchy…", pct: 55 },
+    { label: "Building structured notes & flashcard deck…", pct: 85 },
+    { label: "Ready", pct: 100 }
   ];
 
-  const handleProcess = () => {
+  const handleStartProcessing = () => {
     setIsProcessing(true);
     setProgress(0);
-    setCurrentStep(0);
+    setStageIndex(0);
     setIsDone(false);
     setActiveTab('summary');
     setMessages([
-      { sender: 'ai', text: `Hi! I'm your AI Study Assistant. I've finished parsing "${activeLecture.title}". Feel free to ask me anything about the content or select a suggested question below!` }
+      { 
+        sender: 'ai', 
+        text: `I've finished processing "${activeLecture.title}". What concept would you like to review or explore further?`,
+        citations: ["04:15", "18:42"]
+      }
     ]);
-    setSelectedQuizAnswers({});
-    setShowQuizResults(false);
     setCurrentCardIdx(0);
     setIsFlipped(false);
     setMasteredCards({});
@@ -225,385 +194,299 @@ export default function InteractiveSandbox() {
 
     const interval = setInterval(() => {
       setProgress((prev) => {
-        const next = prev + 1;
-        
-        // Find which step text to show based on percent
-        const matchingStep = processingSteps.findIndex((step, idx) => {
-          const prevStep = idx > 0 ? processingSteps[idx - 1].pct : 0;
-          return next >= prevStep && next <= step.pct;
-        });
-        if (matchingStep !== -1) {
-          setCurrentStep(matchingStep);
-        }
+        const next = prev + 2;
+        if (next < 30) setStageIndex(0);
+        else if (next < 65) setStageIndex(1);
+        else if (next < 95) setStageIndex(2);
+        else setStageIndex(3);
 
         if (next >= 100) {
           clearInterval(interval);
           setTimeout(() => {
             setIsProcessing(false);
             setIsDone(true);
-            triggerConfetti();
+            confetti({
+              particleCount: 50,
+              spread: 60,
+              origin: { y: 0.6 },
+              colors: ['#8C7CF0', '#7FCBAE', '#F4CE6B']
+            });
           }, 300);
           return 100;
         }
         return next;
       });
-    }, 40);
+    }, 45);
 
     return () => clearInterval(interval);
-  }, [isProcessing, selectedType]);
+  }, [isProcessing]);
 
-  const triggerConfetti = () => {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#3b82f6', '#06b6d4', '#6366f1', '#10b981']
-    });
-  };
-
-  // Chat message submit handler
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
 
-    const userMsg = { sender: 'user', text: inputValue };
-    setMessages(prev => [...prev, userMsg]);
+    const query = inputValue;
+    setMessages(prev => [...prev, { sender: 'user', text: query }]);
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI response based on questions or fallbacks
     setTimeout(() => {
-      let reply = "That is a great question! Based on this lecture, that topic is essential to understand, but let me check the core summary context for details. Is there anything specific from the flashcards you'd like me to explain?";
-      
-      const query = inputValue.toLowerCase();
-      // Simple keyword matching for demo
-      if (query.includes('relu') || query.includes('activation')) {
-        reply = "In the lecture, ReLU (Rectified Linear Unit) is highlighted as the preferred activation function for hidden layers. It outputs the input directly if positive, and zero otherwise: f(x) = max(0, x). This helps solve the vanishing gradient issue!";
-      } else if (query.includes('backprop') || query.includes('gradient')) {
-        reply = "Backpropagation is the mechanism used to optimize weights by moving backwards through neural layers and calculating gradients of the loss function using the chain rule.";
-      } else if (query.includes('quantum') || query.includes('schrodinger') || query.includes('schrödinger')) {
-        reply = "The Schrödinger Wave Equation is the quantum equivalent of Newton's laws. It calculates the wave function (\u03c8) which provides the probability density of a particle's physical state.";
-      } else if (query.includes('monetary') || query.includes('fiscal')) {
-        reply = "Monetary policy is controlled by the central bank (e.g. Federal Reserve) using interest rates and discount factors. Fiscal policy is controlled by government tax collections and spending allocations.";
-      } else if (query.includes('gdp')) {
-        reply = "GDP represents the total monetary value of all final goods produced in a nation. Nominal GDP uses current prices, while Real GDP adjusts for inflation using a base year.";
+      let reply = "Here is what the lecture covers regarding that: ";
+      let citations = ["12:30"];
+      const q = query.toLowerCase();
+
+      if (q.includes('relu') || q.includes('activation')) {
+        reply = "ReLU (Rectified Linear Unit) outputs max(0, x). By keeping the gradient at 1 for all positive inputs, it prevents gradient signals from vanishing across deep network layers.";
+        citations = ["14:20", "22:15"];
+      } else if (q.includes('backprop') || q.includes('gradient')) {
+        reply = "Backpropagation calculates partial derivatives of the loss function with respect to every weight using the chain rule, moving sequentially backward from the output layer.";
+        citations = ["08:45", "19:10"];
+      } else if (q.includes('quantum') || q.includes('schrodinger') || q.includes('wave')) {
+        reply = "The Schrödinger equation determines the evolution of a wave function (ψ). The square |ψ|² yields the probability density of locating the particle in a region.";
+        citations = ["06:12", "31:40"];
+      } else if (q.includes('gdp') || q.includes('fiscal') || q.includes('monetary')) {
+        reply = "Fiscal policy involves government taxation and spending. Monetary policy is handled by central banks via interest rates and reserve requirements to regulate price inflation.";
+        citations = ["10:15", "45:00"];
+      } else {
+        reply = `Based on your lecture notes, this concept is directly linked to the core principles outlined in the summary.`;
       }
 
-      setMessages(prev => [...prev, { sender: 'ai', text: reply }]);
+      setMessages(prev => [...prev, { sender: 'ai', text: reply, citations }]);
       setIsTyping(false);
-    }, 1200);
-  };
-
-  const handleSuggestedQuestion = (question) => {
-    setMessages(prev => [...prev, { sender: 'user', text: question }]);
-    setIsTyping(true);
-    setTimeout(() => {
-      let reply = "";
-      if (question.includes('Activation Function') || question.includes('activation')) {
-        reply = "Activation functions introduce non-linear relationships to artificial neurons. Without them, even a 100-layer neural network behaves like a single linear model, meaning it couldn't learn complex boundaries like curves or circles.";
-      } else if (question.includes('Superposition') || question.includes('superposition')) {
-        reply = "Quantum Superposition states that a system exists in all possible configurations simultaneously. Think of a spinning coin: while spinning, it is in a combination of heads and tails. Only when stopped (measured) does it collapse into a single state.";
-      } else if (question.includes('Fiscal') || question.includes('fiscal')) {
-        reply = "Fiscal policy is government spending and tax regulations. For example, during a recession, a government might increase infrastructure spending or cut taxes to boost aggregate demand.";
-      }
-      setMessages(prev => [...prev, { sender: 'ai', text: reply }]);
-      setIsTyping(false);
-    }, 1000);
-  };
-
-  const handleQuizAnswer = (qIdx, optIdx) => {
-    setSelectedQuizAnswers(prev => ({
-      ...prev,
-      [qIdx]: optIdx
-    }));
+    }, 900);
   };
 
   return (
-    <section id="sandbox" className="py-12 relative">
+    <section id="sandbox" className="py-20 bg-bg-subtle/60 border-t border-border-subtle relative z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Heading */}
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <h2 className="text-3xl font-extrabold sm:text-4xl mb-4">
-            Interactive <span className="text-gradient-blue">Product Sandbox</span>
+        <div className="max-w-2xl mx-auto text-center mb-14">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface border border-border-subtle text-xs font-semibold text-accent-primary mb-3 shadow-soft">
+            <Sparkles className="w-3.5 h-3.5" />
+            Interactive Workspace Sandbox
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold font-display text-text-primary tracking-tight mb-3">
+            See how LectureMind builds structured knowledge
           </h2>
-          <p className="text-slate-400 text-sm sm:text-base">
-            Experience the processing power of our FastAPI and Gemini AI pipeline. Choose a sample lecture material below and generate your structured study pack.
+          <p className="text-sm text-text-secondary leading-relaxed">
+            Select a sample lecture file to simulate transcription, concept extraction, spaced flashcard generation, and grounded Q&A.
           </p>
         </div>
 
-        {/* Console Container */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+        {/* Sandbox Console Container */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           
-          {/* LEFT: Config Panel (4 Columns) */}
-          <div className="lg:col-span-4 flex flex-col justify-between glass-panel rounded-2xl p-6 gap-6">
+          {/* Left: Input Selection Column (4 cols) */}
+          <div className="lg:col-span-4 bg-surface border border-border-subtle rounded-md p-6 flex flex-col justify-between shadow-soft">
             <div>
-              <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
-                <FolderUp className="w-5 h-5 text-blue-400" />
-                Upload Simulator
-              </h3>
-              <p className="text-slate-400 text-xs mb-5">
-                Select a sample file format to simulate processing.
-              </p>
-
-              {/* Selector Tabs */}
-              <div className="flex flex-col gap-3">
-                <button 
-                  onClick={() => { setSelectedType('audio'); setIsDone(false); }}
-                  className={`flex items-center gap-3.5 p-3.5 rounded-xl border text-left transition-all ${
-                    selectedType === 'audio' 
-                      ? 'bg-blue-950/40 border-blue-500/50 text-white shadow-md shadow-blue-500/5' 
-                      : 'bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-700/80 hover:text-slate-200'
-                  }`}
-                >
-                  <div className={`p-2 rounded-lg ${selectedType === 'audio' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                    <FileAudio className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Audio Recording</span>
-                    <span className="text-sm font-semibold truncate block max-w-[200px]">Deep Learning.mp3</span>
-                  </div>
-                </button>
-
-                <button 
-                  onClick={() => { setSelectedType('document'); setIsDone(false); }}
-                  className={`flex items-center gap-3.5 p-3.5 rounded-xl border text-left transition-all ${
-                    selectedType === 'document' 
-                      ? 'bg-blue-950/40 border-blue-500/50 text-white shadow-md shadow-blue-500/5' 
-                      : 'bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-700/80 hover:text-slate-200'
-                  }`}
-                >
-                  <div className={`p-2 rounded-lg ${selectedType === 'document' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">PDF Textbook</span>
-                    <span className="text-sm font-semibold truncate block max-w-[200px]">Quantum Mechanics.pdf</span>
-                  </div>
-                </button>
-
-                <button 
-                  onClick={() => { setSelectedType('video'); setIsDone(false); }}
-                  className={`flex items-center gap-3.5 p-3.5 rounded-xl border text-left transition-all ${
-                    selectedType === 'video' 
-                      ? 'bg-blue-950/40 border-blue-500/50 text-white shadow-md shadow-blue-500/5' 
-                      : 'bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-700/80 hover:text-slate-200'
-                  }`}
-                >
-                  <div className={`p-2 rounded-lg ${selectedType === 'video' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                    <Video className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">YouTube Link</span>
-                    <span className="text-sm font-semibold truncate block max-w-[200px]">Stanford Economics.mp4</span>
-                  </div>
-                </button>
+              <div className="flex items-center justify-between pb-3 border-b border-border-subtle mb-4">
+                <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">
+                  1. Choose Sample Source
+                </span>
+                <span className="text-[11px] text-text-muted">Sample data</span>
               </div>
 
-              {/* File Info */}
-              <div className="mt-6 p-4 rounded-xl bg-slate-900/30 border border-slate-900 flex justify-between text-xs text-slate-400">
+              {/* Selector Buttons */}
+              <div className="space-y-2.5">
+                {[
+                  { id: 'audio', title: 'Deep Learning.mp3', subtitle: 'Audio lecture · 54 mins', icon: FileAudio },
+                  { id: 'document', title: 'Quantum Mechanics.pdf', subtitle: 'Textbook chapter · 45 pages', icon: FileText },
+                  { id: 'video', title: 'Macroeconomics.mp4', subtitle: 'Seminar recording · 1h 15m', icon: Video },
+                ].map((item) => {
+                  const isSelected = selectedType === item.id;
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => { setSelectedType(item.id); setIsDone(false); }}
+                      className={`w-full flex items-center gap-3 p-3.5 rounded-sm border text-left transition-all ${
+                        isSelected
+                          ? 'border-accent-primary bg-surface-tint shadow-soft text-text-primary font-medium'
+                          : 'border-border-subtle bg-surface hover:bg-bg-subtle/50 text-text-secondary'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-sm ${isSelected ? 'bg-accent-primary/15 text-accent-primary' : 'bg-bg-subtle text-text-muted'}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-semibold text-text-primary block truncate">
+                          {item.title}
+                        </span>
+                        <span className="text-[11px] text-text-secondary block">
+                          {item.subtitle}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* File Specs */}
+              <div className="mt-5 p-3.5 rounded-sm bg-bg-subtle border border-border-subtle flex items-center justify-between text-xs">
                 <div>
-                  <span className="block text-slate-600 uppercase tracking-wide font-semibold mb-0.5">Size</span>
-                  <span className="font-semibold text-slate-300">{activeLecture.size}</span>
+                  <span className="text-[10px] text-text-muted uppercase font-mono block">Format</span>
+                  <span className="font-medium text-text-primary">{activeLecture.type.toUpperCase()}</span>
                 </div>
-                <div className="border-l border-slate-900 h-6 my-auto"></div>
+                <div className="h-4 border-r border-border-subtle" />
                 <div>
-                  <span className="block text-slate-600 uppercase tracking-wide font-semibold mb-0.5">Duration</span>
-                  <span className="font-semibold text-slate-300">{activeLecture.duration}</span>
+                  <span className="text-[10px] text-text-muted uppercase font-mono block">Size</span>
+                  <span className="font-medium text-text-primary">{activeLecture.size}</span>
                 </div>
-                <div className="border-l border-slate-900 h-6 my-auto"></div>
+                <div className="h-4 border-r border-border-subtle" />
                 <div>
-                  <span className="block text-slate-600 uppercase tracking-wide font-semibold mb-0.5">Core Engine</span>
-                  <span className="font-semibold text-cyan-400 flex items-center gap-1">
-                    Gemini 1.5
-                  </span>
+                  <span className="text-[10px] text-text-muted uppercase font-mono block">Pipeline</span>
+                  <span className="font-medium text-accent-primary">Gemini 1.5 + RAG</span>
                 </div>
               </div>
             </div>
 
             {/* Launch Action */}
-            <div className="mt-8">
-              <button 
-                onClick={handleProcess}
+            <div className="pt-6">
+              <button
+                onClick={handleStartProcessing}
                 disabled={isProcessing}
-                className="w-full relative group px-6 py-4.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 transition-all duration-300 shadow-lg shadow-blue-500/10 hover:shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+                className="w-full py-3 rounded-sm text-xs font-semibold text-white bg-accent-primary hover:bg-accent-hover transition-all shadow-soft flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                <span className="flex items-center justify-center gap-2">
-                  {isProcessing ? (
-                    <>
-                      <RefreshCw className="w-5 h-5 animate-spin" />
-                      Analyzing Pipeline... {progress}%
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-5 h-5 fill-current" />
-                      Generate Study Assets
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </>
-                  )}
-                </span>
-                <span className="absolute bottom-0 left-0 h-1 bg-cyan-400 transition-all duration-300" style={{ width: `${progress}%` }}></span>
+                {isProcessing ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Processing {progress}%…</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>Generate Structured Study Pack</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
 
-          {/* RIGHT: Output Sandbox (8 Columns) */}
-          <div className="lg:col-span-8 flex flex-col glass-panel rounded-2xl min-h-[500px] overflow-hidden relative border-blue-900/20">
+          {/* Right: Output Workspace Screen (8 cols) */}
+          <div className="lg:col-span-8 bg-surface border border-border-subtle rounded-md flex flex-col min-h-[460px] overflow-hidden shadow-soft">
             
-            {/* INITIAL STATE: Ready to click */}
+            {/* INITIAL STATE */}
             {!isProcessing && !isDone && (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                <div className="w-20 h-20 rounded-3xl bg-blue-950/50 border border-blue-800/20 flex items-center justify-center text-blue-400 mb-6 relative animate-pulse-slow">
-                  <BrainCircuit className="w-10 h-10" />
-                  <div className="absolute inset-0 rounded-3xl border border-cyan-500/20 scale-110"></div>
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-surface-tint/30">
+                <div className="w-14 h-14 rounded-md bg-bg-subtle border border-border-subtle flex items-center justify-center text-accent-primary mb-4 shadow-soft">
+                  <BrainCircuit className="w-7 h-7" />
                 </div>
-                <h4 className="text-xl font-bold text-white mb-2">
-                  System Awaiting Input
+                <h4 className="text-base font-bold text-text-primary mb-1">
+                  Ready to process lecture
                 </h4>
-                <p className="text-slate-400 text-sm max-w-md mb-6">
-                  Select your lecture file on the left and click "Generate Study Assets" to simulate the transcription, categorization, and structuring pipeline.
+                <p className="text-xs text-text-secondary max-w-sm mb-5 leading-relaxed">
+                  Click "Generate Structured Study Pack" on the left to observe how notes, concept maps, and SM-2 flashcards are generated.
                 </p>
-                <div className="flex gap-4">
-                  <span className="text-xs px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-slate-400 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                    FastAPI Endpoint Ready
-                  </span>
-                  <span className="text-xs px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-slate-400 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span>
-                    Gemini Connection Stable
-                  </span>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface border border-border-subtle text-[11px] text-text-secondary">
+                  <span className="w-2 h-2 rounded-full bg-[#6FBF9A]"></span>
+                  FastAPI backend ready · RAG pipeline standby
                 </div>
               </div>
             )}
 
-            {/* PROCESSING STATE: Show active processing bars and logs */}
+            {/* PROCESSING STATE WITH SHIMMER PROGRESS */}
             {isProcessing && (
-              <div className="flex-1 flex flex-col justify-between p-6 bg-slate-950/80">
-                <div className="flex items-center justify-between border-b border-slate-900 pb-4 mb-4">
-                  <span className="text-xs font-semibold text-slate-500 tracking-wider uppercase">Processing Logs</span>
-                  <span className="text-xs font-mono text-cyan-400">STATUS: ACTIVE_PIPELINE</span>
-                </div>
+              <div className="flex-1 flex flex-col justify-between p-8 bg-surface">
+                <div className="space-y-4">
+                  <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">
+                    Pipeline In Progress
+                  </span>
 
-                {/* Simulated Log Feed */}
-                <div className="flex-1 font-mono text-xs sm:text-sm text-slate-300 space-y-2 mb-6 overflow-y-auto max-h-[300px]">
-                  {processingSteps.map((step, idx) => {
-                    const shown = progress >= (idx > 0 ? processingSteps[idx - 1].pct : 0);
-                    const completed = progress >= step.pct;
-                    return (
-                      <div 
-                        key={idx} 
-                        className={`flex gap-3 transition-opacity duration-300 ${shown ? 'opacity-100' : 'opacity-0'}`}
-                      >
-                        <span className={completed ? 'text-emerald-400' : 'text-cyan-400'}>
-                          {completed ? '✓' : '▶'}
-                        </span>
-                        <span className="text-slate-500">[{step.pct}%]</span>
-                        <span className={completed ? 'text-slate-200' : 'text-slate-400'}>
-                          {step.text}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Progress Indicators */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-semibold uppercase">Transcribing & Indexing Context</span>
-                    <span className="text-cyan-400 font-bold font-mono">{progress}%</span>
+                  {/* Stage Progress labels */}
+                  <div className="space-y-3 pt-2">
+                    {stages.map((stage, idx) => {
+                      const isComplete = progress >= stage.pct;
+                      const isCurrent = stageIndex === idx;
+                      return (
+                        <div key={idx} className="flex items-center gap-3">
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                            isComplete ? 'bg-success text-white' : isCurrent ? 'bg-accent-primary text-white animate-pulse' : 'bg-bg-subtle text-text-muted'
+                          }`}>
+                            {isComplete ? '✓' : idx + 1}
+                          </div>
+                          <span className={`text-xs ${isCurrent ? 'font-semibold text-text-primary' : isComplete ? 'text-text-secondary' : 'text-text-muted'}`}>
+                            {stage.label}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="w-full bg-slate-900 rounded-full h-3 border border-slate-800 overflow-hidden">
+                </div>
+
+                {/* Slim progress bar */}
+                <div className="space-y-2 pt-8">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-text-secondary">Reading through your lecture…</span>
+                    <span className="font-semibold text-text-primary tabular-nums">{progress}%</span>
+                  </div>
+                  <div className="w-full bg-bg-subtle h-2 rounded-full overflow-hidden border border-border-subtle">
                     <div 
-                      className="bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-500 h-full rounded-full transition-all duration-75"
+                      className="bg-accent-primary h-full rounded-full transition-all duration-150"
                       style={{ width: `${progress}%` }}
-                    ></div>
+                    />
                   </div>
                 </div>
               </div>
             )}
 
-            {/* RESOLVED STATE: Full Dashboard output */}
+            {/* RESOLVED STATE */}
             {isDone && (
               <div className="flex-1 flex flex-col">
-                {/* Dashboard Tabs Header */}
-                <div className="flex flex-wrap items-center justify-between border-b border-blue-950/40 bg-slate-900/20 px-4 py-2 gap-2">
-                  <div className="flex items-center gap-1 sm:gap-2">
-                    <button 
-                      onClick={() => setActiveTab('summary')}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                        activeTab === 'summary' 
-                          ? 'bg-blue-950 text-blue-400 border border-blue-800/40' 
-                          : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      <Layers className="w-4 h-4" />
-                      Summary
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab('flashcards')}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                        activeTab === 'flashcards' 
-                          ? 'bg-blue-950 text-blue-400 border border-blue-800/40' 
-                          : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      <Lightbulb className="w-4 h-4" />
-                      Flashcards
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab('mindmap')}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                        activeTab === 'mindmap' 
-                          ? 'bg-blue-950 text-blue-400 border border-blue-800/40' 
-                          : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      <BrainCircuit className="w-4 h-4" />
-                      Mind Map
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab('chat')}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                        activeTab === 'chat' 
-                          ? 'bg-blue-950 text-blue-400 border border-blue-800/40' 
-                          : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      Tutor Chat
-                    </button>
+                {/* Navigation Tabs */}
+                <div className="flex items-center justify-between border-b border-border-subtle bg-bg-subtle/50 px-4 py-2">
+                  <div className="flex items-center gap-1">
+                    {[
+                      { id: 'summary', label: 'Structured Notes', icon: Layers },
+                      { id: 'mindmap', label: 'Concept Map', icon: BrainCircuit },
+                      { id: 'flashcards', label: 'Flashcards', icon: Lightbulb },
+                      { id: 'chat', label: 'Ask AI', icon: MessageSquare },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${
+                          activeTab === tab.id
+                            ? 'bg-surface text-text-primary font-semibold shadow-soft'
+                            : 'text-text-secondary hover:text-text-primary'
+                        }`}
+                      >
+                        <tab.icon className="w-3.5 h-3.5" />
+                        {tab.label}
+                      </button>
+                    ))}
                   </div>
-                  
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/40 border border-emerald-900/30 text-emerald-400 font-semibold">
-                    100% Synced
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent-mint/20 text-[#2B7A5C]">
+                    Grounded in lecture
                   </span>
                 </div>
 
-                {/* Dashboard Tab Content */}
-                <div className="flex-1 p-6 overflow-y-auto max-h-[440px]">
+                {/* Tab Views */}
+                <div className="flex-1 p-6 overflow-y-auto max-h-[380px]">
                   
-                  {/* TAB 1: SUMMARY */}
+                  {/* TAB 1: SUMMARY / NOTES */}
                   {activeTab === 'summary' && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="space-y-5 animate-in fade-in duration-200">
                       <div>
-                        <h4 className="text-xl font-bold text-white mb-2">{activeLecture.title}</h4>
-                        <span className="text-xs text-slate-500 uppercase tracking-widest">AI Generated Summary</span>
+                        <h4 className="text-base font-bold text-text-primary mb-1">
+                          {activeLecture.title}
+                        </h4>
+                        <span className="text-[11px] text-text-muted">Structured synopsis & key taxonomy</span>
                       </div>
                       
-                      <p className="text-slate-300 text-sm leading-relaxed bg-blue-950/10 border border-blue-900/10 p-4.5 rounded-xl">
+                      <p className="text-xs text-text-secondary leading-relaxed bg-surface-tint p-4 rounded-sm border border-border-subtle">
                         {activeLecture.summary}
                       </p>
 
                       <div>
-                        <h5 className="text-sm font-bold text-white mb-3 flex items-center gap-1.5">
-                          <BookOpen className="w-4 h-4 text-cyan-400" />
-                          Key Terminology & Definitions
+                        <h5 className="text-xs font-semibold text-text-primary uppercase tracking-wider mb-2.5">
+                          Extracted Key Concepts
                         </h5>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {activeLecture.keyTakeaways.map((takeaway, idx) => (
-                            <div key={idx} className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-900/80">
-                              <span className="text-sm font-bold text-blue-300 block mb-1">{takeaway.term}</span>
-                              <p className="text-xs text-slate-400 leading-relaxed">{takeaway.desc}</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {activeLecture.keyTakeaways.map((item, idx) => (
+                            <div key={idx} className="p-3 bg-surface rounded-sm border border-border-subtle shadow-soft">
+                              <span className="text-xs font-bold text-text-primary block mb-0.5">{item.term}</span>
+                              <p className="text-xs text-text-secondary leading-snug">{item.desc}</p>
                             </div>
                           ))}
                         </div>
@@ -611,55 +494,97 @@ export default function InteractiveSandbox() {
                     </div>
                   )}
 
-                  {/* TAB 2: FLASHCARDS */}
-                  {activeTab === 'flashcards' && (
-                    <div className="flex flex-col items-center justify-between min-h-[320px] animate-in fade-in duration-300">
-                      <div className="text-center">
-                        <span className="text-xs text-slate-500 font-semibold tracking-wider block mb-1">
-                          CARD {currentCardIdx + 1} OF {activeLecture.flashcards.length}
-                        </span>
-                        <p className="text-xs text-slate-400">Click card to flip. Test your knowledge.</p>
+                  {/* TAB 2: CONCEPT MAP */}
+                  {activeTab === 'mindmap' && (
+                    <div className="space-y-4 animate-in fade-in duration-200">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-semibold text-text-primary">Interactive Concept Hierarchy</span>
+                        <span className="text-text-muted">Hover nodes to inspect relationships</span>
                       </div>
 
-                      {/* 3D Flashcard Container */}
-                      <div 
+                      <div className="bg-surface-tint border border-border-subtle rounded-sm p-4 overflow-hidden">
+                        <svg className="w-full h-56" viewBox="0 0 540 220">
+                          {/* Connection Lines */}
+                          <line x1="270" y1="110" x2="110" y2="45" stroke="#DDD7E8" strokeWidth="1.5" />
+                          <line x1="270" y1="110" x2="110" y2="110" stroke="#DDD7E8" strokeWidth="1.5" />
+                          <line x1="270" y1="110" x2="110" y2="175" stroke="#DDD7E8" strokeWidth="1.5" />
+                          
+                          <line x1="110" y1="45" x2="25" y2="25" stroke="#E9E4F0" strokeWidth="1" />
+                          <line x1="110" y1="45" x2="25" y2="65" stroke="#E9E4F0" strokeWidth="1" />
+                          <line x1="110" y1="110" x2="25" y2="95" stroke="#E9E4F0" strokeWidth="1" />
+                          <line x1="110" y1="110" x2="25" y2="130" stroke="#E9E4F0" strokeWidth="1" />
+                          <line x1="110" y1="175" x2="25" y2="160" stroke="#E9E4F0" strokeWidth="1" />
+                          <line x1="110" y1="175" x2="25" y2="195" stroke="#E9E4F0" strokeWidth="1" />
+
+                          {/* Center Root Node */}
+                          <rect x="200" y="90" width="140" height="40" rx="8" fill="#FFFFFF" stroke="#8C7CF0" strokeWidth="2" />
+                          <text x="270" y="115" fill="#2A2730" fontSize="12" fontWeight="bold" textAnchor="middle">
+                            {activeLecture.mindmap.label}
+                          </text>
+
+                          {/* Branch Nodes */}
+                          {activeLecture.mindmap.children.map((child, idx) => {
+                            const y = idx === 0 ? 45 : idx === 1 ? 110 : 175;
+                            return (
+                              <g key={idx}>
+                                <rect x="50" y={y - 18} width="120" height="36" rx="6" fill="#FFFFFF" stroke="#D6CFE2" strokeWidth="1.5" />
+                                <text x="110" y={y + 4} fill="#2A2730" fontSize="10" fontWeight="600" textAnchor="middle">
+                                  {child.label}
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 3: FLASHCARDS */}
+                  {activeTab === 'flashcards' && (
+                    <div className="flex flex-col items-center justify-between min-h-[280px] animate-in fade-in duration-200">
+                      <div className="text-center mb-2">
+                        <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+                          Card {currentCardIdx + 1} of {activeLecture.flashcards.length}
+                        </span>
+                      </div>
+
+                      {/* 3D Flip Card */}
+                      <div
                         onClick={() => setIsFlipped(!isFlipped)}
-                        className="w-full max-w-lg h-52 perspective-1000 my-6 cursor-pointer"
+                        className="w-full max-w-md h-44 perspective-1000 cursor-pointer select-none"
                       >
-                        <div className={`relative w-full h-full duration-500 preserve-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
-                          {/* Front Side */}
-                          <div className="absolute inset-0 w-full h-full rounded-2xl glass-panel-glow flex flex-col justify-between p-6 backface-hidden bg-slate-900/80">
-                            <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest flex items-center gap-1.5">
-                              <HelpCircle className="w-3.5 h-3.5" />
-                              Question
+                        <div className={`relative w-full h-full duration-300 preserve-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
+                          {/* Front */}
+                          <div className="absolute inset-0 w-full h-full rounded-md border border-border-subtle bg-surface p-6 shadow-soft flex flex-col justify-between backface-hidden">
+                            <span className="text-[10px] font-bold text-accent-primary uppercase tracking-widest flex items-center gap-1">
+                              <HelpCircle className="w-3.5 h-3.5" /> Question
                             </span>
-                            <p className="text-base sm:text-lg font-bold text-white text-center leading-snug px-4">
+                            <p className="text-sm font-semibold text-text-primary text-center px-4 leading-relaxed">
                               {activeLecture.flashcards[currentCardIdx].front}
                             </p>
-                            <span className="text-[10px] text-slate-500 text-center uppercase tracking-widest font-semibold">
-                              Click to see Answer
+                            <span className="text-[10px] text-text-muted text-center uppercase tracking-wider">
+                              Click card to flip
                             </span>
                           </div>
 
-                          {/* Back Side */}
-                          <div className="absolute inset-0 w-full h-full rounded-2xl glass-panel-glow border-indigo-500/30 flex flex-col justify-between p-6 backface-hidden rotate-y-180 bg-slate-950">
-                            <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest flex items-center gap-1.5">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              Explanation
+                          {/* Back */}
+                          <div className="absolute inset-0 w-full h-full rounded-md border border-accent-primary/40 bg-surface-tint p-6 shadow-soft flex flex-col justify-between backface-hidden rotate-y-180">
+                            <span className="text-[10px] font-bold text-accent-mint uppercase tracking-widest flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Explanation
                             </span>
-                            <p className="text-sm text-slate-200 text-center leading-relaxed px-4">
+                            <p className="text-xs font-medium text-text-primary text-center px-4 leading-relaxed">
                               {activeLecture.flashcards[currentCardIdx].back}
                             </p>
-                            <span className="text-[10px] text-slate-500 text-center uppercase tracking-widest font-semibold">
-                              Click to flip back
+                            <span className="text-[10px] text-text-muted text-center uppercase tracking-wider">
+                              Click card to flip back
                             </span>
                           </div>
                         </div>
                       </div>
 
                       {/* Controls */}
-                      <div className="flex items-center justify-between w-full max-w-lg gap-4">
-                        <button 
+                      <div className="flex items-center justify-between w-full max-w-md pt-4">
+                        <button
                           onClick={() => {
                             if (currentCardIdx > 0) {
                               setCurrentCardIdx(c => c - 1);
@@ -667,26 +592,16 @@ export default function InteractiveSandbox() {
                             }
                           }}
                           disabled={currentCardIdx === 0}
-                          className="p-2.5 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-2 rounded-sm border border-border-subtle text-text-secondary hover:text-text-primary disabled:opacity-30"
                         >
-                          <ChevronLeft className="w-5 h-5" />
+                          <ChevronLeft className="w-4 h-4" />
                         </button>
                         
-                        <button 
-                          onClick={() => {
-                            setMasteredCards(prev => ({ ...prev, [currentCardIdx]: !prev[currentCardIdx] }));
-                          }}
-                          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
-                            masteredCards[currentCardIdx]
-                              ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-400'
-                              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-300'
-                          }`}
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                          {masteredCards[currentCardIdx] ? 'Mastered!' : 'Mark as Mastered'}
-                        </button>
+                        <span className="text-xs font-medium text-text-secondary">
+                          Space to flip · Next review in 3 days
+                        </span>
 
-                        <button 
+                        <button
                           onClick={() => {
                             if (currentCardIdx < activeLecture.flashcards.length - 1) {
                               setCurrentCardIdx(c => c + 1);
@@ -694,274 +609,92 @@ export default function InteractiveSandbox() {
                             }
                           }}
                           disabled={currentCardIdx === activeLecture.flashcards.length - 1}
-                          className="p-2.5 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-2 rounded-sm border border-border-subtle text-text-secondary hover:text-text-primary disabled:opacity-30"
                         >
-                          <ChevronRight className="w-5 h-5" />
+                          <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* TAB 3: MIND MAP */}
-                  {activeTab === 'mindmap' && (
-                    <div className="flex flex-col items-center justify-center min-h-[320px] animate-in fade-in duration-300">
-                      <div className="w-full max-w-2xl border border-slate-900 rounded-xl bg-slate-950 p-4 relative overflow-hidden">
-                        
-                        {/* Interactive SVG Mind Map */}
-                        <svg className="w-full h-72 sm:h-80" viewBox="0 0 600 300">
-                          {/* Paths connecting nodes */}
-                          <path d="M 300 150 L 120 70" stroke="rgba(59, 130, 246, 0.4)" strokeWidth="2.5" fill="none" className="animate-pulse" />
-                          <path d="M 300 150 L 120 150" stroke="rgba(99, 102, 241, 0.4)" strokeWidth="2.5" fill="none" />
-                          <path d="M 300 150 L 120 230" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="2.5" fill="none" />
-                          
-                          <path d="M 120 70 L 40 40" stroke="rgba(59, 130, 246, 0.25)" strokeWidth="1.5" fill="none" />
-                          <path d="M 120 70 L 40 70" stroke="rgba(59, 130, 246, 0.25)" strokeWidth="1.5" fill="none" />
-                          <path d="M 120 70 L 40 100" stroke="rgba(59, 130, 246, 0.25)" strokeWidth="1.5" fill="none" />
-
-                          <path d="M 120 150 L 40 125" stroke="rgba(99, 102, 241, 0.25)" strokeWidth="1.5" fill="none" />
-                          <path d="M 120 150 L 40 175" stroke="rgba(99, 102, 241, 0.25)" strokeWidth="1.5" fill="none" />
-
-                          <path d="M 120 230 L 40 205" stroke="rgba(6, 182, 212, 0.25)" strokeWidth="1.5" fill="none" />
-                          <path d="M 120 230 L 40 255" stroke="rgba(6, 182, 212, 0.25)" strokeWidth="1.5" fill="none" />
-
-                          {/* Secondary branch line helpers */}
-                          <circle cx="300" cy="150" r="42" fill="#0f172a" stroke="#3b82f6" strokeWidth="3" className="filter drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                          <text x="300" y="154" fill="#ffffff" fontSize="13" fontWeight="bold" textAnchor="middle">
-                            {activeLecture.mindmap.label}
-                          </text>
-
-                          {/* Sub Node 1 */}
-                          <circle cx="120" cy="70" r="32" fill="#0f172a" stroke="#3b82f6" strokeWidth="2" />
-                          <text x="120" y="74" fill="#60a5fa" fontSize="10" fontWeight="semibold" textAnchor="middle">
-                            {activeLecture.mindmap.children[0].label}
-                          </text>
-
-                          {/* Sub Node 2 */}
-                          <circle cx="120" cy="150" r="32" fill="#0f172a" stroke="#6366f1" strokeWidth="2" />
-                          <text x="120" y="154" fill="#818cf8" fontSize="10" fontWeight="semibold" textAnchor="middle">
-                            {activeLecture.mindmap.children[1].label}
-                          </text>
-
-                          {/* Sub Node 3 */}
-                          <circle cx="120" cy="230" r="32" fill="#0f172a" stroke="#06b6d4" strokeWidth="2" />
-                          <text x="120" y="234" fill="#22d3ee" fontSize="10" fontWeight="semibold" textAnchor="middle">
-                            {activeLecture.mindmap.children[2].label}
-                          </text>
-
-                          {/* Leaf Nodes from Sub Node 1 */}
-                          <rect x="5" y="32" width="60" height="15" rx="3" fill="#1e293b" stroke="#3b82f6" strokeWidth="0.5" />
-                          <text x="35" y="42" fill="#e2e8f0" fontSize="7" textAnchor="middle">{activeLecture.mindmap.children[0].children[0]}</text>
-
-                          <rect x="5" y="62" width="60" height="15" rx="3" fill="#1e293b" stroke="#3b82f6" strokeWidth="0.5" />
-                          <text x="35" y="72" fill="#e2e8f0" fontSize="7" textAnchor="middle">{activeLecture.mindmap.children[0].children[1]}</text>
-
-                          <rect x="5" y="92" width="60" height="15" rx="3" fill="#1e293b" stroke="#3b82f6" strokeWidth="0.5" />
-                          <text x="35" y="102" fill="#e2e8f0" fontSize="7" textAnchor="middle">{activeLecture.mindmap.children[0].children[2]}</text>
-
-                          {/* Leaf Nodes from Sub Node 2 */}
-                          <rect x="5" y="117" width="60" height="15" rx="3" fill="#1e293b" stroke="#6366f1" strokeWidth="0.5" />
-                          <text x="35" y="127" fill="#e2e8f0" fontSize="7" textAnchor="middle">{activeLecture.mindmap.children[1].children[0]}</text>
-
-                          <rect x="5" y="167" width="60" height="15" rx="3" fill="#1e293b" stroke="#6366f1" strokeWidth="0.5" />
-                          <text x="35" y="177" fill="#e2e8f0" fontSize="7" textAnchor="middle">{activeLecture.mindmap.children[1].children[1]}</text>
-
-                          {/* Leaf Nodes from Sub Node 3 */}
-                          <rect x="5" y="197" width="60" height="15" rx="3" fill="#1e293b" stroke="#06b6d4" strokeWidth="0.5" />
-                          <text x="35" y="207" fill="#e2e8f0" fontSize="7" textAnchor="middle">{activeLecture.mindmap.children[2].children[0]}</text>
-
-                          <rect x="5" y="247" width="60" height="15" rx="3" fill="#1e293b" stroke="#06b6d4" strokeWidth="0.5" />
-                          <text x="35" y="257" fill="#e2e8f0" fontSize="7" textAnchor="middle">{activeLecture.mindmap.children[2].children[1]}</text>
-                        </svg>
-
-                        <div className="absolute bottom-3 right-3 text-[10px] text-slate-500 font-semibold bg-slate-900 border border-slate-800 px-2 py-1 rounded">
-                          SVG Interactive Graph
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 4: CHAT TUTOR & QUIZ */}
+                  {/* TAB 4: TUTOR CHAT WITH CITATIONS */}
                   {activeTab === 'chat' && (
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-5 min-h-[340px] items-stretch animate-in fade-in duration-300">
-                      
-                      {/* Sub-panel Left: Chat Message Feed (7 cols) */}
-                      <div className="md:col-span-7 flex flex-col justify-between border border-slate-900 rounded-xl bg-slate-950/40 p-4">
-                        <div className="flex-1 space-y-3 mb-4 overflow-y-auto max-h-[220px] pr-1">
-                          {messages.map((msg, idx) => (
-                            <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                              <div className={`max-w-[85%] rounded-xl px-3.5 py-2 text-xs leading-relaxed ${
-                                msg.sender === 'user'
-                                  ? 'bg-blue-600 text-white font-semibold rounded-tr-none'
-                                  : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none'
-                              }`}>
-                                {msg.text}
-                              </div>
-                            </div>
-                          ))}
-                          {isTyping && (
-                            <div className="flex justify-start">
-                              <div className="bg-slate-900 border border-slate-800 text-slate-400 rounded-xl rounded-tl-none px-3.5 py-2 text-xs flex gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce"></span>
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce delay-150"></span>
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce delay-300"></span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Input bar */}
-                        <form onSubmit={handleSendMessage} className="flex gap-2">
-                          <input 
-                            type="text" 
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            placeholder="Ask about this lecture..."
-                            className="flex-1 px-3 py-2 text-xs rounded-lg bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-blue-500/80 placeholder:text-slate-500"
-                          />
-                          <button 
-                            type="submit"
-                            className="px-3 py-2 text-xs font-bold bg-blue-600 rounded-lg text-white hover:bg-blue-500"
-                          >
-                            Send
-                          </button>
-                        </form>
-                      </div>
-
-                      {/* Sub-panel Right: Mini Quiz (5 cols) */}
-                      <div className="md:col-span-5 border border-slate-900 rounded-xl bg-slate-950/40 p-4 flex flex-col justify-between">
-                        <div>
-                          <h5 className="text-xs font-bold text-white mb-3 flex items-center gap-1.5">
-                            <Flame className="w-3.5 h-3.5 text-cyan-400" />
-                            Live Mini Quiz
-                          </h5>
-                          
-                          <div className="space-y-4">
-                            {activeLecture.quiz.map((q, qIdx) => (
-                              <div key={qIdx} className="text-left">
-                                <p className="text-xs font-semibold text-slate-300 mb-2 leading-relaxed">
-                                  {qIdx + 1}. {q.question}
-                                </p>
-                                <div className="space-y-1.5">
-                                  {q.options.map((opt, optIdx) => {
-                                    const selected = selectedQuizAnswers[qIdx] === optIdx;
-                                    const isCorrect = q.answer === optIdx;
-                                    
-                                    let btnStyle = "bg-slate-900/60 border-slate-800 text-slate-400";
-                                    if (showQuizResults) {
-                                      if (isCorrect) btnStyle = "bg-emerald-950/40 border-emerald-500/50 text-emerald-400";
-                                      else if (selected) btnStyle = "bg-rose-950/40 border-rose-500/50 text-rose-400";
-                                    } else if (selected) {
-                                      btnStyle = "bg-blue-950 border-blue-500 text-blue-300";
-                                    }
-
-                                    return (
-                                      <button 
-                                        key={optIdx}
-                                        disabled={showQuizResults}
-                                        onClick={() => handleQuizAnswer(qIdx, optIdx)}
-                                        className={`w-full text-left px-3 py-2 rounded-lg text-[11px] border transition-colors ${btnStyle}`}
-                                      >
-                                        {opt}
-                                      </button>
-                                    );
-                                  })}
+                    <div className="flex flex-col h-full space-y-4 animate-in fade-in duration-200">
+                      {/* Messages Thread */}
+                      <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
+                        {messages.map((msg, idx) => (
+                          <div key={idx} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
+                            <div className={`p-3 rounded-md text-xs leading-relaxed max-w-[85%] ${
+                              msg.sender === 'user'
+                                ? 'bg-accent-primary text-white'
+                                : 'bg-surface-tint border border-border-subtle text-text-primary'
+                            }`}>
+                              <p>{msg.text}</p>
+                              {msg.citations && msg.citations.length > 0 && (
+                                <div className="mt-2 pt-1.5 border-t border-border-subtle/60 flex items-center gap-1.5 text-[10px]">
+                                  <span className="text-text-muted font-mono">Sources:</span>
+                                  {msg.citations.map((c, cIdx) => (
+                                    <span key={cIdx} className="px-1.5 py-0.5 rounded bg-surface border border-border-subtle font-mono text-accent-primary font-semibold">
+                                      {c}
+                                    </span>
+                                  ))}
                                 </div>
-                                {showQuizResults && (
-                                  <p className="text-[10px] text-slate-500 mt-1.5 leading-normal">
-                                    <span className="font-bold text-slate-400">Explanation:</span> {q.explanation}
-                                  </p>
-                                )}
-                              </div>
-                            ))}
+                              )}
+                            </div>
                           </div>
-                        </div>
-
-                        {/* Quiz actions */}
-                        <div className="mt-4 pt-3 border-t border-slate-900 flex justify-between gap-2">
-                          <button 
-                            onClick={() => {
-                              setSelectedQuizAnswers({});
-                              setShowQuizResults(false);
-                            }}
-                            className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-400 hover:text-white"
-                          >
-                            Reset
-                          </button>
-                          
-                          {!showQuizResults ? (
-                            <button 
-                              onClick={() => {
-                                if (Object.keys(selectedQuizAnswers).length > 0) {
-                                  setShowQuizResults(true);
-                                }
-                              }}
-                              disabled={Object.keys(selectedQuizAnswers).length === 0}
-                              className="px-3 py-1.5 rounded bg-cyan-600 text-white text-[10px] font-bold hover:bg-cyan-500 disabled:opacity-40"
-                            >
-                              Submit Answers
-                            </button>
-                          ) : (
-                            <span className="text-[10px] text-emerald-400 font-bold self-center">
-                              Quiz Graded!
-                            </span>
-                          )}
-                        </div>
+                        ))}
+                        {isTyping && (
+                          <div className="text-xs text-text-muted italic flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 animate-spin text-accent-primary" />
+                            <span>Tutor is formulating explanation…</span>
+                          </div>
+                        )}
                       </div>
 
+                      {/* Suggested Questions */}
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {activeLecture.suggestedQuestions.map((q, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setMessages(prev => [...prev, { sender: 'user', text: q }]);
+                              setIsTyping(true);
+                              setTimeout(() => {
+                                setMessages(prev => [...prev, {
+                                  sender: 'ai',
+                                  text: `Regarding "${q}": The lecture emphasizes this as a core topic because it governs state transformations.`,
+                                  citations: ["18:42"]
+                                }]);
+                                setIsTyping(false);
+                              }, 800);
+                            }}
+                            className="px-2.5 py-1 rounded-full bg-bg-subtle hover:bg-border-subtle text-[11px] text-text-secondary transition-colors text-left"
+                          >
+                            "{q}"
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Chat Input Bar */}
+                      <form onSubmit={handleSendMessage} className="flex gap-2 pt-2">
+                        <input
+                          type="text"
+                          value={inputValue}
+                          onChange={(e) => setInputValue(e.target.value)}
+                          placeholder="Ask a question grounded in this lecture…"
+                          className="flex-1 px-3 py-2 bg-bg-subtle border border-border-subtle rounded-sm text-xs text-text-primary focus-ring"
+                        />
+                        <button
+                          type="submit"
+                          className="px-4 py-2 bg-accent-primary text-white text-xs font-semibold rounded-sm hover:bg-accent-hover transition-colors"
+                        >
+                          Ask
+                        </button>
+                      </form>
                     </div>
                   )}
 
                 </div>
-
-                {/* Dashboard Tab Footer: Suggested actions */}
-                <div className="border-t border-slate-900 bg-slate-950 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex flex-wrap gap-2 items-center">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Suggested Questions:</span>
-                    {selectedType === 'audio' && (
-                      <>
-                        <button 
-                          onClick={() => handleSuggestedQuestion("Why do we need an activation function?")}
-                          className="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-400 hover:text-white"
-                        >
-                          "Why activation function?"
-                        </button>
-                        <button 
-                          onClick={() => handleSuggestedQuestion("How is backpropagation calculated?")}
-                          className="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-400 hover:text-white"
-                        >
-                          "How does backprop work?"
-                        </button>
-                      </>
-                    )}
-                    {selectedType === 'document' && (
-                      <button 
-                        onClick={() => handleSuggestedQuestion("What is quantum superposition?")}
-                        className="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-400 hover:text-white"
-                      >
-                        "What is superposition?"
-                      </button>
-                    )}
-                    {selectedType === 'video' && (
-                      <button 
-                        onClick={() => handleSuggestedQuestion("What is the difference between fiscal and monetary policy?")}
-                        className="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-400 hover:text-white"
-                      >
-                        "Fiscal vs Monetary?"
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => { setIsDone(false); }}
-                      className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      Clear
-                    </button>
-                  </div>
-                </div>
-
               </div>
             )}
 

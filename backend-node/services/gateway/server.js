@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
-// Proxy Helper using Node's built-in http module (avoids fetch issues in forked processes)
+// Proxy Helper using Node's built-in http module
 const proxyTo = (targetBaseUrl) => (req, res) => {
   const targetUrl = new URL(`${targetBaseUrl}${req.originalUrl}`);
   const body = (req.method !== 'GET' && req.method !== 'HEAD') ? JSON.stringify(req.body) : null;
@@ -42,7 +42,7 @@ const proxyTo = (targetBaseUrl) => (req, res) => {
   proxyReq.on('error', (error) => {
     console.error(`[Gateway Proxy] Error forwarding ${req.method} ${req.originalUrl} -> ${targetBaseUrl}${req.originalUrl}:`, error.message);
     if (!res.headersSent) {
-      res.status(502).json({ error: `Bad Gateway. Failed to reach service: ${targetBaseUrl}` });
+      res.status(502).json({ error: `Bad Gateway. Failed to reach service: ${targetBaseUrl}. ${error.message}` });
     }
   });
 
@@ -50,13 +50,13 @@ const proxyTo = (targetBaseUrl) => (req, res) => {
   proxyReq.end();
 };
 
-// Target Microservices URLs (configured via env in Docker, fallbacks to localhost)
+// Target Microservices URLs
 const SERVICES = {
-  AUTH: process.env.AUTH_SERVICE_URL || 'http://127.0.0.1:5011',
-  USER: process.env.USER_SERVICE_URL || 'http://127.0.0.1:5012',
-  SUBJECTS: process.env.SUBJECTS_SERVICE_URL || 'http://127.0.0.1:5013',
-  FLASHCARDS: process.env.FLASHCARDS_SERVICE_URL || 'http://127.0.0.1:5014',
-  AI: process.env.AI_SERVICE_URL || 'http://127.0.0.1:5015'
+  AUTH: process.env.AUTH_SERVICE_URL || 'http://localhost:5011',
+  USER: process.env.USER_SERVICE_URL || 'http://localhost:5012',
+  SUBJECTS: process.env.SUBJECTS_SERVICE_URL || 'http://localhost:5013',
+  FLASHCARDS: process.env.FLASHCARDS_SERVICE_URL || 'http://localhost:5014',
+  AI: process.env.AI_SERVICE_URL || 'http://localhost:5015'
 };
 
 // Gateway Health Check

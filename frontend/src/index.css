@@ -3,167 +3,288 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --paper: #FBF6EC;
+    --paper-deep: #F5EDDD;
+    --rule: #E7D8BC;
+    --card: #FFFFFF;
+    --card-border: #ECE1CB;
+    --charcoal: #2B2432;
+    --charcoal-soft: #665F72;
+    --violet: #6C5CE0;
+    --violet-soft: #EDE9FB;
+    --coral: #F0603E;
+    --coral-soft: #FDE7E0;
+    --teal: #0F8F86;
+    --teal-soft: #DEF3EF;
+    --gold: #E3A62F;
+    --gold-soft: #FBF0D9;
+  }
+
   body {
-    @apply bg-[#030712] text-[#F8FAFC] font-sans overflow-x-hidden selection:bg-[#8B5CF6]/30 selection:text-[#C084FC];
-    background-image: 
-      radial-gradient(circle at 15% 15%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
-      radial-gradient(circle at 85% 65%, rgba(6, 182, 212, 0.07) 0%, transparent 40%),
-      radial-gradient(circle at 50% 90%, rgba(16, 185, 129, 0.05) 0%, transparent 45%);
-    background-attachment: fixed;
+    background-color: var(--paper);
+    color: var(--charcoal);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    overflow-x: hidden;
   }
-  h1, h2, h3, h4, .font-space {
-    font-family: 'Space Grotesk', sans-serif;
+
+  h1, h2, h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
-  .font-display {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+
+  code, pre, kbd {
+    font-family: 'JetBrains Mono', monospace;
   }
 }
 
-/* Custom Grid Background Pattern */
-.bg-grid-pattern {
-  background-size: 50px 50px;
-  background-image: 
-    linear-gradient(to right, rgba(139, 92, 246, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(139, 92, 246, 0.04) 1px, transparent 1px);
+/* Faint Paper Rules Texture for Hero */
+.paper-rules {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 37px,
+    var(--rule) 38px
+  );
+  background-position: 0 100px;
 }
 
-.bg-radial-gradient {
-  background: radial-gradient(circle 800px at 50% 200px, rgba(139, 92, 246, 0.12), transparent);
+/* Washi Tape Strip */
+.washi {
+  position: absolute;
+  top: -14px;
+  left: 36px;
+  width: 92px;
+  height: 26px;
+  background: repeating-linear-gradient(45deg, var(--gold), var(--gold) 6px, #EFC868 6px, #EFC868 12px);
+  opacity: 0.88;
+  border-radius: 3px;
+  transform: rotate(-4deg);
+  box-shadow: 0 2px 6px rgba(43, 36, 50, 0.12);
+  z-index: 20;
 }
 
-.bg-radial-glow {
-  background: radial-gradient(circle 300px at var(--x, 50%) var(--y, 50%), rgba(6, 182, 212, 0.15), transparent 80%);
+/* Notebook Page Container */
+.notebook-page {
+  position: relative;
+  background: #FFFFFF;
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  box-shadow: 0 8px 24px rgba(43, 36, 50, 0.09);
+  padding: 26px 26px 28px;
+  transform: rotate(1.2deg);
+  transition: transform 0.3s ease;
+}
+.notebook-page:hover {
+  transform: rotate(0deg) translateY(-2px);
 }
 
-/* Glassmorphism Design System */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(139, 92, 246, 0.15);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* Floating Sticky Notes */
+.float-sticky {
+  position: absolute;
+  padding: 10px 14px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(43, 36, 50, 0.08);
+  font-size: 12px;
+  font-weight: 700;
+  z-index: 15;
+  transition: transform 0.2s ease;
+}
+.s1 { background: var(--gold-soft); color: #8A6A10; top: -20px; right: -16px; transform: rotate(6deg); }
+.s1:hover { transform: rotate(0deg) scale(1.05); }
+.s2 { background: var(--coral-soft); color: #B84327; bottom: 32px; right: -26px; transform: rotate(-5deg); }
+.s2:hover { transform: rotate(0deg) scale(1.05); }
+.s3 { background: var(--teal-soft); color: #0B6B63; bottom: -18px; left: 36px; transform: rotate(3deg); }
+.s3:hover { transform: rotate(0deg) scale(1.05); }
+
+/* Ink Trail Vertical Gradient Stroke */
+.ink-trail-wrap {
+  position: relative;
+  height: 0;
+}
+.ink-trail {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -30px;
+  width: 6px;
+  z-index: 0;
+  opacity: 0.9;
 }
 
-.glass-panel:hover {
-  border-color: rgba(139, 92, 246, 0.35);
-  box-shadow: 0 12px 40px 0 rgba(139, 92, 246, 0.12);
+/* Handwritten Font Utility */
+.font-handwriting {
+  font-family: 'Caveat', cursive;
+  line-height: 1.15;
 }
 
-.glass-panel-glow {
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  box-shadow: 0 0 25px rgba(139, 92, 246, 0.15);
+/* 4 Colored Metric Cards with 4px left-edge stripe */
+.metric-stripe-violet {
+  border-left: 4px solid var(--violet);
+}
+.metric-stripe-coral {
+  border-left: 4px solid var(--coral);
+}
+.metric-stripe-teal {
+  border-left: 4px solid var(--teal);
+}
+.metric-stripe-gold {
+  border-left: 4px solid var(--gold);
 }
 
-.glass-card-interactive {
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all 0.25s ease-out;
+/* AI Pen Border */
+.ink-border-ai {
+  border-left: 2.5px solid var(--violet);
+  padding-left: 0.875rem;
 }
 
-.glass-card-interactive:hover {
-  transform: translateY(-2px);
-  background: rgba(30, 41, 59, 0.6);
-  border-color: rgba(139, 92, 246, 0.4);
-  box-shadow: 0 10px 30px -10px rgba(139, 92, 246, 0.3);
+/* Highlighters */
+.hl-mint {
+  background-color: rgba(15, 143, 134, 0.22);
+  border-radius: 3px;
+  padding: 0.05rem 0.25rem;
+}
+.hl-gold {
+  background-color: rgba(227, 166, 47, 0.24);
+  border-radius: 3px;
+  padding: 0.05rem 0.25rem;
+}
+.hl-coral {
+  background-color: rgba(240, 96, 62, 0.18);
+  border-radius: 3px;
+  padding: 0.05rem 0.25rem;
+}
+.hl-violet {
+  background-color: rgba(108, 92, 224, 0.18);
+  border-radius: 3px;
+  padding: 0.05rem 0.25rem;
 }
 
-/* Custom Text Gradients */
-.text-gradient-purple {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-violet-400 via-purple-300 to-indigo-300;
+.wavy-flag {
+  text-decoration: underline wavy var(--coral) 1.5px;
+  text-underline-offset: 3px;
 }
 
-.text-gradient-blue {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-cyan-400;
+/* Dog-Ear Corner */
+.dog-ear-container {
+  position: relative;
+  overflow: hidden;
+}
+.dog-ear-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease-in-out;
+}
+.dog-ear-corner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-width: 0 18px 18px 0;
+  border-style: solid;
+  border-color: transparent transparent var(--rule) transparent;
+  transition: all 0.2s ease-in-out;
+}
+.dog-ear-corner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-width: 0 17px 17px 0;
+  border-style: solid;
+  border-color: transparent transparent var(--paper) transparent;
+  transition: all 0.2s ease-in-out;
+}
+.dog-ear-corner:hover::before {
+  border-color: transparent transparent var(--coral) transparent;
+}
+.dog-ear-corner:hover::after {
+  border-color: transparent transparent var(--paper-deep) transparent;
 }
 
-.text-gradient-cyan {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400;
+/* Nav Link Underline */
+.nav-link-item {
+  position: relative;
+  padding: 4px 0;
+  color: var(--charcoal-soft);
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+.nav-link-item:hover {
+  color: var(--charcoal);
+}
+.nav-link-item::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0;
+  height: 2px;
+  background: var(--coral);
+  border-radius: 2px;
+  transition: width 0.25s ease;
+}
+.nav-link-item:hover::after {
+  width: 100%;
 }
 
-.text-gradient-amber {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400;
+/* Button hover transitions */
+.btn-primary-notebook {
+  background-color: var(--charcoal);
+  color: var(--paper);
+  padding: 11px 22px;
+  border-radius: 9999px;
+  font-size: 14.5px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(43,36,50,0.05), 0 10px 24px rgba(43,36,50,0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-primary-notebook:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(43,36,50,0.12);
+  background-color: var(--coral);
 }
 
-/* Shimmer Animation Keyframe */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.animate-shimmer {
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%);
-  background-size: 200% 100%;
-  animation: shimmer 2.5s infinite;
-}
-
-/* Card Flip Styles for Flashcards */
+/* 3D Flip Card Utilities */
 .perspective-1000 {
   perspective: 1000px;
 }
-
 .preserve-3d {
   transform-style: preserve-3d;
 }
-
 .backface-hidden {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
-
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
 
-/* Custom Scrollbars */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #030712;
+  background: var(--paper);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
-  border-radius: 9999px;
+  background: var(--rule);
+  border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.7);
-}
-
-/* Custom Glow Orbs */
-.glow-orb {
-  position: absolute;
-  width: 450px;
-  height: 450px;
-  border-radius: 50%;
-  filter: blur(130px);
-  opacity: 0.18;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.glow-orb-purple {
-  background: #8b5cf6;
-  top: 5%;
-  left: 10%;
-}
-
-.glow-orb-indigo {
-  background: #6366f1;
-  bottom: 15%;
-  right: 8%;
-}
-
-.glow-orb-cyan {
-  background: #06b6d4;
-  top: 45%;
-  left: 55%;
+  background: var(--charcoal-soft);
 }

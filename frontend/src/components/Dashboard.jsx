@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { API_URL } from '../config';
 import SubjectExplorer from './SubjectExplorer';
 import FlashcardHub from './FlashcardHub';
 import AnalyticsPanel from './AnalyticsPanel';
 import VoiceTutor from './VoiceTutor';
 import ExamSimulator from './ExamSimulator';
+import WeeklyPageTurnModal from './WeeklyPageTurnModal';
 import { 
   Flame, 
   Clock, 
@@ -17,7 +17,6 @@ import {
   BookOpen, 
   BookMarked,
   ArrowRight,
-  User,
   ArrowLeft,
   ChevronRight,
   Brain,
@@ -26,10 +25,13 @@ import {
   Plus,
   Trash2,
   Mic,
-  Timer
+  Timer,
+  Layers,
+  BookOpenCheck
 } from 'lucide-react';
 
-export default function Dashboard({ currentUser, onBackToHome }) {
+export default function Dashboard({ currentUser, onBackToHome, onShowToast }) {
+  const [isWeeklyPageTurnOpen, setIsWeeklyPageTurnOpen] = useState(false);
   // Today's Study Plan interactive tasks state
   const [tasks, setTasks] = useState([
     { id: 1, text: "Review Quantum Mechanics probability density notes", completed: false, category: "Physics" },
@@ -67,16 +69,18 @@ export default function Dashboard({ currentUser, onBackToHome }) {
     };
     saveTasks([item, ...tasks]);
     setNewTaskText('');
+    if (onShowToast) onShowToast('Task added to today’s study plan', 'success');
   };
 
   const handleDeleteTask = (id, e) => {
     e.stopPropagation();
     saveTasks(tasks.filter(t => t.id !== id));
+    if (onShowToast) onShowToast('Task removed', 'info');
   };
 
   // Study Stats States
-  const [studiedToday, setStudiedToday] = useState(0.0);
-  const [weeklyHours, setWeeklyHours] = useState(0.0);
+  const [studiedToday, setStudiedToday] = useState(2.4);
+  const [weeklyHours, setWeeklyHours] = useState(14.5);
   const [weeklyGoal, setWeeklyGoal] = useState(20.0);
 
   // Stats Controls States
@@ -84,6 +88,7 @@ export default function Dashboard({ currentUser, onBackToHome }) {
   const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [logAmount, setLogAmount] = useState('');
   const [newGoal, setNewGoal] = useState('');
+
   const getPanelFromHash = () => {
     const hash = window.location.hash;
     if (hash.includes('/dashboard/subjects')) return 'explorer';
@@ -136,11 +141,10 @@ export default function Dashboard({ currentUser, onBackToHome }) {
     const local = localStorage.getItem('lecturemind_guest_stats');
     if (local) {
       const parsed = JSON.parse(local);
-      setStudiedToday(parsed.studiedToday || 0.0);
-      setWeeklyHours(parsed.weeklyHours || 0.0);
+      setStudiedToday(parsed.studiedToday || 2.4);
+      setWeeklyHours(parsed.weeklyHours || 14.5);
       setWeeklyGoal(parsed.weeklyGoal || 20.0);
     } else {
-      // Default initial states for new users/guests
       setStudiedToday(2.4);
       setWeeklyHours(14.5);
       setWeeklyGoal(20.0);
@@ -156,7 +160,6 @@ export default function Dashboard({ currentUser, onBackToHome }) {
     }));
   };
 
-  // Submit Handler for logging hours
   const handleLogTime = async (e) => {
     e.preventDefault();
     const hours = parseFloat(logAmount);
@@ -179,6 +182,7 @@ export default function Dashboard({ currentUser, onBackToHome }) {
           setWeeklyHours(data.stats.weeklyHours);
           setLogAmount('');
           setIsLoggingTime(false);
+          if (onShowToast) onShowToast(`Logged ${hours} hours successfully!`, 'success');
           return;
         }
       } catch (err) {
@@ -186,18 +190,16 @@ export default function Dashboard({ currentUser, onBackToHome }) {
       }
     }
 
-    // Local fallback updates
     const updatedToday = studiedToday + hours;
     const updatedWeek = weeklyHours + hours;
     setStudiedToday(updatedToday);
     setWeeklyHours(updatedWeek);
     saveLocalStats(updatedToday, updatedWeek, weeklyGoal);
-    
     setLogAmount('');
     setIsLoggingTime(false);
+    if (onShowToast) onShowToast(`Logged ${hours} hours (saved locally)`, 'success');
   };
 
-  // Submit Handler for changing goals
   const handleSetGoal = async (e) => {
     e.preventDefault();
     const goal = parseFloat(newGoal);
@@ -219,6 +221,7 @@ export default function Dashboard({ currentUser, onBackToHome }) {
           setWeeklyGoal(data.stats.weeklyGoal);
           setNewGoal('');
           setIsEditingGoal(false);
+          if (onShowToast) onShowToast(`Goal updated to ${goal} hours/week`, 'success');
           return;
         }
       } catch (err) {
@@ -226,12 +229,11 @@ export default function Dashboard({ currentUser, onBackToHome }) {
       }
     }
 
-    // Local fallback updates
     setWeeklyGoal(goal);
     saveLocalStats(studiedToday, weeklyHours, goal);
-    
     setNewGoal('');
     setIsEditingGoal(false);
+    if (onShowToast) onShowToast(`Goal updated to ${goal} hours/week`, 'success');
   };
 
   const toggleTask = (id) => {
@@ -239,28 +241,9 @@ export default function Dashboard({ currentUser, onBackToHome }) {
   };
 
   const completedCount = tasks.filter(t => t.completed).length;
-  const progressPercent = Math.round((completedCount / tasks.length) * 100);
+  const progressPercent = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
 
-  // Animations config
-  const slideFromLeft = {
-    initial: { x: -80, opacity: 0 },
-    animate: { x: 0, opacity: 1 },
-    transition: { duration: 0.7, ease: "easeOut" }
-  };
-
-  const slideFromRight = {
-    initial: { x: 80, opacity: 0 },
-    animate: { x: 0, opacity: 1 },
-    transition: { duration: 0.7, ease: "easeOut" }
-  };
-
-  const fadeInUp = {
-    initial: { y: 30, opacity: 0 },
-    animate: { y: 0, opacity: 1 },
-    transition: { duration: 0.5, ease: "easeOut" }
-  };
-
-  // Static mock states matching request metrics
+  // Mock static values for widgets
   const upcomingExams = [
     { id: 1, title: "Quantum Physics Midterm", date: "July 12, 2026", daysLeft: 6, course: "Physics" },
     { id: 2, title: "Deep Learning Neural Networks Exam", date: "July 15, 2026", daysLeft: 9, course: "AI" },
@@ -268,9 +251,9 @@ export default function Dashboard({ currentUser, onBackToHome }) {
   ];
 
   const subjectsProgress = [
-    { name: "Deep Learning & Representation Learning", progress: 75, color: "from-blue-500 to-indigo-500", hours: "12.4 hrs" },
-    { name: "Quantum Mechanics & Wave Mechanics", progress: 48, color: "from-cyan-500 to-blue-500", hours: "8.2 hrs" },
-    { name: "Macroeconomics (National Accounts)", progress: 88, color: "from-indigo-500 to-cyan-500", hours: "15.1 hrs" }
+    { name: "Deep Learning & Representation Learning", progress: 75, hours: "12.4 hrs" },
+    { name: "Quantum Mechanics & Wave Mechanics", progress: 48, hours: "8.2 hrs" },
+    { name: "Macroeconomics (National Accounts)", progress: 88, hours: "15.1 hrs" }
   ];
 
   const weakTopics = [
@@ -294,647 +277,633 @@ export default function Dashboard({ currentUser, onBackToHome }) {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative">
-      {/* Header back anchor */}
-      <div className="flex items-center justify-between mb-10">
-        <button 
-          onClick={onBackToHome}
-          className="flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-          Back to Homepage
-        </button>
-
-        <span className="text-xs px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400 font-semibold">
-          Active Session: <span className="text-blue-400">{currentUser ? currentUser.email : "Guest Mode"}</span>
-        </span>
-      </div>
-
-      {/* TOP HEADER: Title & Streak status */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12">
+    <div className="max-w-[1180px] mx-auto px-4 sm:px-8 py-8 relative">
+      
+      {/* Top Header Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Study Room <span className="text-gradient-blue font-extrabold">Console</span>
+          <button 
+            onClick={onBackToHome}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-charcoal-soft hover:text-charcoal transition-colors mb-2"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Homepage
+          </button>
+          <h2 className="text-3xl sm:text-4xl font-bold font-display text-charcoal tracking-tight">
+            Study Console
           </h2>
-          <p className="text-slate-400 text-sm mt-1">
-            Track metrics, schedule revision intervals, and review generated AI study packs.
+          <p className="text-sm text-charcoal-soft mt-1">
+            Answer within seconds: what you learned, what to study now, and what needs review.
           </p>
         </div>
 
-        {/* Dynamic Streak Badge */}
-        <div className="flex items-center gap-4 bg-slate-900/60 border border-slate-800/80 px-4 py-3 rounded-2xl">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-950/40 text-orange-400 border border-orange-800/30">
-            <Flame className="w-5 h-5 fill-current animate-bounce" />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-500 uppercase tracking-widest block font-bold">Daily Streak</span>
-            <span className="text-sm font-extrabold text-white">7 Days Consistency</span>
-          </div>
-        </div>
-      </div>
+        {/* Right Tools & Consistency Badge */}
+        <div className="flex items-center gap-3">
+          {/* Weekly Page Turn Button */}
+          <button
+            onClick={() => setIsWeeklyPageTurnOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-card hover:bg-paper-deep border border-rule shadow-soft transition-all text-xs font-semibold text-charcoal group"
+          >
+            <BookOpenCheck className="w-4 h-4 text-violet group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline">Weekly Page</span>
+            <span className="font-handwriting text-sm text-violet transform -rotate-2">
+              turn page ➔
+            </span>
+          </button>
 
-      {/* PANEL TOGGLE BUTTONS */}
-      <div className="flex gap-3 mb-8 border-b border-slate-900 pb-5">
-        <button
-          onClick={() => window.location.hash = '#/dashboard/metrics'}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
-            activePanel === 'metrics'
-              ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/10'
-              : 'bg-slate-900/30 border-slate-900 text-slate-400 hover:border-slate-800'
-          }`}
-        >
-          Study Metrics Room
-        </button>
-        <button
-          onClick={() => window.location.hash = '#/dashboard/subjects'}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
-            activePanel === 'explorer'
-              ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/10'
-              : 'bg-slate-900/30 border-slate-900 text-slate-400 hover:border-slate-800'
-          }`}
-        >
-          Subject & Folder Manager
-        </button>
-        <button
-          onClick={() => window.location.hash = '#/dashboard/flashcards'}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
-            activePanel === 'flashcards'
-              ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/10'
-              : 'bg-slate-900/30 border-slate-900 text-slate-400 hover:border-slate-800'
-          }`}
-        >
-          AI Flashcard Hub
-        </button>
-        <button
-          onClick={() => window.location.hash = '#/dashboard/exam'}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
-            activePanel === 'exam'
-              ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/10'
-              : 'bg-slate-900/30 border-slate-900 text-slate-400 hover:border-slate-800'
-          }`}
-        >
-          <Timer className="w-3.5 h-3.5" /> Timed Exam Simulator
-        </button>
-        <button
-          onClick={() => window.location.hash = '#/dashboard/voice'}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
-            activePanel === 'voice'
-              ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/10'
-              : 'bg-slate-900/30 border-slate-900 text-slate-400 hover:border-slate-800'
-          }`}
-        >
-          <Mic className="w-3.5 h-3.5" /> Voice Socratic Tutor
-        </button>
-        <button
-          onClick={() => window.location.hash = '#/dashboard/analytics'}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
-            activePanel === 'analytics'
-              ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/10'
-              : 'bg-slate-900/30 border-slate-900 text-slate-400 hover:border-slate-800'
-          }`}
-        >
-          Progress Analytics
-        </button>
-      </div>
-
-      {activePanel === 'metrics' ? (
-        <>
-          {/* TOP ROW STATS (4 Widgets) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {/* Stat 1: Time Studied Today */}
-        <motion.div {...fadeInUp} transition={{ delay: 0.1 }} className="glass-panel rounded-2xl p-6 relative overflow-hidden group flex flex-col justify-between min-h-[160px]">
-          <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-blue-600/5 filter blur-xl rounded-full"></div>
-          <div>
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Studied Today</span>
-              <Clock className="w-5 h-5 text-blue-400" />
+          {/* Teal Progress Consistency Badge */}
+          <div className="flex items-center gap-3 bg-card border border-rule px-4 py-2 rounded-full shadow-soft">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-soft text-teal border border-teal/20">
+              <Flame className="w-4 h-4 fill-current" />
             </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-extrabold text-white">{studiedToday.toFixed(1)}</span>
-              <span className="text-slate-400 text-sm font-semibold">hours</span>
-            </div>
-          </div>
-
-          <div className="mt-3 relative z-10">
-            {!isLoggingTime ? (
-              <button 
-                onClick={() => setIsLoggingTime(true)}
-                className="text-[10px] font-bold text-blue-400 hover:text-blue-300 transition-colors px-2.5 py-1 rounded-lg bg-blue-950/20 border border-blue-900/30 w-full text-center"
-              >
-                + Log Study Session
-              </button>
-            ) : (
-              <form onSubmit={handleLogTime} className="pt-2 flex items-center gap-1.5 animate-in slide-in-from-bottom-2 duration-200">
-                <input 
-                  type="number" 
-                  step="0.1" 
-                  min="0.1"
-                  required
-                  value={logAmount}
-                  onChange={(e) => setLogAmount(e.target.value)}
-                  placeholder="Hrs"
-                  className="w-16 px-2 py-1 text-xs rounded-md bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-blue-500"
-                />
-                <button type="submit" className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold rounded-md transition-colors">Log</button>
-                <button type="button" onClick={() => setIsLoggingTime(false)} className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-slate-400 text-[10px] rounded-md transition-colors">X</button>
-              </form>
-            )}
-          </div>
-        </motion.div>
-
-        {/* Stat 2: Weekly Study Hours */}
-        <motion.div {...fadeInUp} transition={{ delay: 0.2 }} className="glass-panel rounded-2xl p-6 relative overflow-hidden group flex flex-col justify-between min-h-[160px]">
-          <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-indigo-600/5 filter blur-xl rounded-full"></div>
-          <div>
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Weekly Hours</span>
-              <BookMarked className="w-5 h-5 text-indigo-400" />
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-extrabold text-white">{weeklyHours.toFixed(1)}</span>
-              <span className="text-slate-400 text-sm font-semibold">/ {weeklyGoal} hrs</span>
-            </div>
-            <div className="w-full bg-slate-900 rounded-full h-1.5 mt-3 overflow-hidden">
-              <div 
-                className="bg-indigo-500 h-full rounded-full transition-all duration-550" 
-                style={{ width: `${Math.min(100, (weeklyHours / weeklyGoal) * 100)}%` }}
-              ></div>
-            </div>
-          </div>
-
-          <div className="mt-3 relative z-10">
-            {!isEditingGoal ? (
-              <button 
-                onClick={() => setIsEditingGoal(true)}
-                className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors px-2.5 py-1 rounded-lg bg-indigo-950/20 border border-indigo-900/30 w-full text-center"
-              >
-                Set Weekly Goal
-              </button>
-            ) : (
-              <form onSubmit={handleSetGoal} className="pt-2 flex items-center gap-1.5 animate-in slide-in-from-bottom-2 duration-200">
-                <input 
-                  type="number" 
-                  step="1" 
-                  min="1"
-                  required
-                  value={newGoal}
-                  onChange={(e) => setNewGoal(e.target.value)}
-                  placeholder="Goal"
-                  className="w-16 px-2 py-1 text-xs rounded-md bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
-                />
-                <button type="submit" className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold rounded-md transition-colors">Set</button>
-                <button type="button" onClick={() => setIsEditingGoal(false)} className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-slate-400 text-[10px] rounded-md transition-colors">X</button>
-              </form>
-            )}
-          </div>
-        </motion.div>
-
-        {/* Stat 3: Flashcards Due */}
-        <motion.div {...fadeInUp} transition={{ delay: 0.3 }} className="glass-panel rounded-2xl p-6 relative overflow-hidden group min-h-[160px] flex flex-col justify-between">
-          <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-cyan-600/5 filter blur-xl rounded-full"></div>
-          <div>
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Flashcards Due</span>
-              <Brain className="w-5 h-5 text-cyan-400" />
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-extrabold text-white">12</span>
-              <span className="text-slate-400 text-sm font-semibold">cards today</span>
-            </div>
-          </div>
-          <p className="text-slate-500 text-[10px] mt-2">
-            Active recall intervals: <span className="text-cyan-400 font-bold">4 high priority</span>
-          </p>
-        </motion.div>
-
-        {/* Stat 4: Leaderboard Position */}
-        <motion.div {...fadeInUp} transition={{ delay: 0.4 }} className="glass-panel rounded-2xl p-6 relative overflow-hidden group min-h-[160px] flex flex-col justify-between">
-          <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-amber-600/5 filter blur-xl rounded-full"></div>
-          <div>
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Leaderboard Rank</span>
-              <Award className="w-5 h-5 text-amber-400" />
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-extrabold text-white">#4</span>
-              <span className="text-slate-400 text-sm font-semibold">out of 120</span>
-            </div>
-          </div>
-          <p className="text-slate-500 text-[10px] mt-2">
-            Score: <span className="text-amber-400 font-bold">8,840 pts</span> &bull; Up 1 place
-          </p>
-        </motion.div>
-      </div>
-
-      {/* DASHBOARD COLUMNS (LEFT & RIGHT) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-        
-        {/* LEFT COLUMN: Study Plan, Progress, Weak Topics (Animates from Left) */}
-        <motion.div 
-          {...slideFromLeft}
-          className="lg:col-span-6 flex flex-col gap-8"
-        >
-          {/* Card 1: Today's Study Plan */}
-          <div className="glass-panel rounded-3xl p-6.5">
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-blue-400" />
-                  Today's Study Plan
-                </h3>
-                <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Daily checklists</span>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-teal uppercase tracking-wider block font-mono font-bold">Progress</span>
+                <span className="font-handwriting text-xs text-teal">you've got this!</span>
               </div>
-              <span className="text-xs font-bold text-blue-400 bg-blue-950/40 border border-blue-900/30 px-2.5 py-1 rounded-lg">
-                {progressPercent}% Done
+              <span className="text-xs font-bold text-charcoal">7 Days Consistency</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* SUGGESTED NEXT STEP BANNER (High-priority Violet Focus Card) */}
+      <div className="mb-8 p-5 rounded-lg bg-violet-soft/80 border-2 border-violet/35 shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
+        <div className="flex items-start sm:items-center gap-3.5">
+          <div className="p-2.5 rounded-full bg-violet text-white shrink-0 shadow-soft">
+            <Clock className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-violet font-mono block">
+                Suggested Next Step
+              </span>
+              <span className="font-handwriting text-xs text-violet font-bold">
+                highest recall impact
               </span>
             </div>
-
-            {/* Add Custom User Task Input Form */}
-            <form onSubmit={handleAddTask} className="flex gap-2 mb-5">
-              <input 
-                type="text" 
-                value={newTaskText}
-                onChange={(e) => setNewTaskText(e.target.value)}
-                placeholder="Add your own custom task for today..."
-                className="flex-1 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-850 text-xs text-white focus:outline-none focus:border-blue-500 font-medium"
-              />
-              <select
-                value={newTaskCategory}
-                onChange={(e) => setNewTaskCategory(e.target.value)}
-                className="px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-850 text-xs text-slate-300 focus:outline-none"
-              >
-                <option value="General">General</option>
-                <option value="AI">AI</option>
-                <option value="Physics">Physics</option>
-                <option value="Math">Math</option>
-                <option value="Exam">Exam</option>
-              </select>
-              <button 
-                type="submit" 
-                className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center gap-1 shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add
-              </button>
-            </form>
-
-            {/* Checklist elements */}
-            <div className="space-y-3.5 mb-6 max-h-72 overflow-y-auto pr-1">
-              {tasks.map(task => (
-                <div 
-                  key={task.id}
-                  onClick={() => toggleTask(task.id)}
-                  className={`w-full flex items-center gap-3.5 p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
-                    task.completed 
-                      ? 'bg-slate-900/20 border-slate-900 text-slate-500 line-through' 
-                      : 'bg-slate-900/40 border-slate-800/80 text-slate-200 hover:border-slate-700/80'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ${
-                    task.completed 
-                      ? 'bg-blue-600 border-blue-500 text-white' 
-                      : 'border-slate-700 hover:border-slate-500'
-                  }`}>
-                    {task.completed && <CheckCircle2 className="w-4 h-4 fill-current text-slate-950" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{task.text}</p>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-950/40 border border-slate-900 text-slate-500 font-bold uppercase mt-1 inline-block">
-                      {task.category}
-                    </span>
-                  </div>
-                  <button
-                    onClick={(e) => handleDeleteTask(task.id, e)}
-                    className="p-1 text-slate-600 hover:text-rose-400 transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-              {tasks.length === 0 && (
-                <p className="text-center py-4 text-xs text-slate-500">No tasks in today's plan yet. Add one above!</p>
-              )}
-            </div>
-
-            {/* Micro-Progress bar */}
-            <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-850">
-              <div 
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              ></div>
-            </div>
+            <p className="text-sm font-semibold text-charcoal mt-0.5">
+              <strong>Backpropagation Calculus</strong> is due for SM-2 review — estimated 4 minutes.
+            </p>
           </div>
-
-          {/* Card 2: Subjects Progress */}
-          <div className="glass-panel rounded-3xl p-6.5">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
-              <BookOpen className="w-5 h-5 text-indigo-400" />
-              Subjects Progress
-            </h3>
-            <p className="text-slate-500 text-xs mb-6">Course content coverage details.</p>
-
-            <div className="space-y-5">
-              {subjectsProgress.map((sub, idx) => (
-                <div key={idx} className="space-y-2">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="font-bold text-slate-200 truncate max-w-[280px] sm:max-w-md">{sub.name}</span>
-                    <span className="font-semibold text-slate-400">{sub.progress}%</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-850">
-                      <div 
-                        className={`bg-gradient-to-r ${sub.color} h-full rounded-full`}
-                        style={{ width: `${sub.progress}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider shrink-0">
-                      {sub.hours}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Card 3: Weak Topics */}
-          <div className="glass-panel rounded-3xl p-6.5">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
-              <AlertCircle className="w-5 h-5 text-rose-400" />
-              Weak Topics (Revision Flags)
-            </h3>
-            <p className="text-slate-500 text-xs mb-6">Identified by quiz performance metrics.</p>
-
-            <div className="space-y-3.5">
-              {weakTopics.map((wt, idx) => (
-                <div 
-                  key={idx} 
-                  className={`p-3.5 rounded-xl border flex items-start gap-3 bg-slate-900/20 ${
-                    wt.status === 'critical' 
-                      ? 'border-rose-950/40 hover:border-rose-800/40' 
-                      : wt.status === 'warning'
-                      ? 'border-orange-950/40 hover:border-orange-850/40'
-                      : 'border-amber-950/40 hover:border-amber-850/40'
-                  }`}
-                >
-                  <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
-                    wt.status === 'critical' 
-                      ? 'bg-rose-950/50 text-rose-400 border border-rose-900/30' 
-                      : wt.status === 'warning'
-                      ? 'bg-orange-950/50 text-orange-400 border border-orange-900/30'
-                      : 'bg-amber-950/50 text-amber-400 border border-amber-900/30'
-                  }`}>
-                    <AlertCircle className="w-4 h-4" />
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <span className={`text-[9px] font-bold uppercase tracking-wider block mb-0.5 ${
-                      wt.status === 'critical' ? 'text-rose-400' : 'text-orange-400'
-                    }`}>
-                      {wt.subject}
-                    </span>
-                    <p className="text-xs font-semibold text-slate-300 leading-normal truncate mb-1">
-                      {wt.topic}
-                    </p>
-                    <span className="text-[10px] text-slate-500">
-                      Average Quiz Accuracy: <span className="font-bold text-slate-400">{wt.accuracy}</span>
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* RIGHT COLUMN: Exams, Timeline, Quiz accuracy, Leaderboard (Animates from Right) */}
-        <motion.div 
-          {...slideFromRight}
-          className="lg:col-span-6 flex flex-col gap-8"
-        >
-          {/* Card 4: Upcoming Exams */}
-          <div className="glass-panel rounded-3xl p-6.5">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
-              <Calendar className="w-5 h-5 text-blue-400" />
-              Upcoming Exams
-            </h3>
-            <p className="text-slate-500 text-xs mb-6">Track exam deadlines and schedules.</p>
-
-            <div className="space-y-4">
-              {upcomingExams.map(exam => (
-                <div 
-                  key={exam.id}
-                  className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900/40 border border-slate-900"
-                >
-                  <div className="min-w-0">
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-950 border border-slate-900 text-slate-400 font-bold uppercase block w-max mb-1.5">
-                      {exam.course}
-                    </span>
-                    <h4 className="text-sm font-bold text-white truncate max-w-[200px] sm:max-w-sm">{exam.title}</h4>
-                    <span className="text-xs text-slate-500">{exam.date}</span>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <span className={`block text-xl font-black ${
-                      exam.daysLeft <= 7 ? 'text-rose-400' : 'text-blue-400'
-                    }`}>{exam.daysLeft}</span>
-                    <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Days Left</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Card 5: Revision Schedule */}
-          <div className="glass-panel rounded-3xl p-6.5">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
-              <RotateCcw className="w-5 h-5 text-cyan-400" />
-              Revision Schedule (Spaced Repetition)
-            </h3>
-            <p className="text-slate-500 text-xs mb-6">Review intervals optimized for memory retention.</p>
-
-            {/* Vertical Timeline */}
-            <div className="relative pl-5 border-l border-slate-850 ml-2 space-y-6 py-1">
-              {revisionSchedule.map((rev, idx) => (
-                <div key={idx} className="relative">
-                  {/* Bullet */}
-                  <div className="absolute -left-[26px] top-1 w-3.5 h-3.5 rounded-full bg-slate-950 border-2 border-cyan-500"></div>
-
-                  <div className="flex items-center justify-between gap-2">
-                    <h4 className="text-xs sm:text-sm font-bold text-slate-200 leading-snug max-w-[220px] sm:max-w-sm truncate">
-                      {rev.topic}
-                    </h4>
-                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider shrink-0">
-                      {rev.time}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-cyan-400/80 font-bold uppercase mt-1 block">
-                    {rev.interval}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Card 6: Quiz Accuracy */}
-          <div className="glass-panel rounded-3xl p-6.5 flex flex-col justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
-                <Zap className="w-5 h-5 text-amber-400" />
-                Quiz Accuracy
-              </h3>
-              <p className="text-slate-500 text-xs mb-6">Concentric radial metrics showing exam accuracy.</p>
-            </div>
-
-            {/* Radial SVG Chart representation */}
-            <div className="flex flex-col sm:flex-row items-center justify-around gap-6 py-2">
-              <div className="relative w-36 h-36 flex items-center justify-center shrink-0">
-                <svg className="w-full h-full transform -rotate-90">
-                  {/* Base Circle */}
-                  <circle cx="72" cy="72" r="54" stroke="rgba(15,23,42,0.6)" strokeWidth="10" fill="transparent" />
-                  {/* Progress Circle */}
-                  <circle 
-                    cx="72" 
-                    cy="72" 
-                    r="54" 
-                    stroke="url(#accuracyGradient)" 
-                    strokeWidth="10" 
-                    fill="transparent" 
-                    strokeDasharray={2 * Math.PI * 54}
-                    strokeDashoffset={2 * Math.PI * 54 * (1 - 0.875)}
-                    strokeLinecap="round"
-                    className="filter drop-shadow-[0_0_4px_rgba(245,158,11,0.3)]"
-                  />
-                  {/* Defs definition for gradient colors */}
-                  <defs>
-                    <linearGradient id="accuracyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#f59e0b" />
-                      <stop offset="100%" stopColor="#d97706" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-
-                {/* Inner label */}
-                <div className="absolute text-center">
-                  <span className="block text-2xl font-black text-white leading-none">87.5%</span>
-                  <span className="text-[9px] uppercase tracking-wide text-slate-500 font-bold block mt-1">Average</span>
-                </div>
-              </div>
-
-              <div className="space-y-3.5 text-xs text-slate-400 w-full">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-900">
-                  <span className="font-semibold">Deep Learning Quiz</span>
-                  <span className="font-bold text-slate-200">92%</span>
-                </div>
-                <div className="flex justify-between items-center pb-2 border-b border-slate-900">
-                  <span className="font-semibold">Quantum Mechanics Quiz</span>
-                  <span className="font-bold text-slate-200">79%</span>
-                </div>
-                <div className="flex justify-between items-center pb-2 border-b border-slate-900">
-                  <span className="font-semibold">Macroeconomics Quiz</span>
-                  <span className="font-bold text-slate-200">90%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 7: Leaderboard Position details */}
-          <div className="glass-panel rounded-3xl p-6.5">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
-              <Award className="w-5 h-5 text-amber-400" />
-              Leaderboard Standing
-            </h3>
-            <p className="text-slate-500 text-xs mb-6">Compare XP points with peers.</p>
-
-            <div className="space-y-2.5">
-              {leaderboard.map((user, idx) => (
-                <div 
-                  key={idx}
-                  className={`flex items-center justify-between p-3 rounded-xl border text-xs transition-colors ${
-                    user.isCurrentUser 
-                      ? 'bg-blue-950/40 border-blue-500/30 text-blue-300' 
-                      : 'bg-slate-900/30 border-slate-900 text-slate-400 hover:border-slate-850'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`w-5 font-bold ${
-                      idx === 0 ? 'text-amber-400' : idx === 1 ? 'text-slate-300' : idx === 2 ? 'text-amber-600' : 'text-slate-500'
-                    }`}>
-                      #{user.rank}
-                    </span>
-                    <span className={`font-semibold ${user.isCurrentUser ? 'text-white font-bold' : ''}`}>
-                      {user.name}
-                    </span>
-                  </div>
-
-                  <span className="font-bold text-slate-200 shrink-0">
-                    {user.score.toLocaleString()} XP
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-      </div>
-
-      {/* HEATMAP CONSISTENCY SECTION AT THE BOTTOM OF THE DASHBOARD */}
-      <motion.div {...fadeInUp} transition={{ delay: 0.5 }} className="glass-panel rounded-3xl p-6.5 mt-8 relative overflow-hidden select-none">
-        <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-emerald-600/5 filter blur-xl rounded-full"></div>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-emerald-400" />
-              Progress Consistency Heatmap
-            </h3>
-            <p className="text-slate-550 text-xs mt-1">Calendar map of active study hours logged per day.</p>
-          </div>
-          
-          <button 
-            onClick={() => window.location.hash = '#/dashboard/analytics'}
-            className="text-xs font-bold text-blue-400 hover:text-blue-305 transition-colors bg-blue-950/20 border border-blue-900/30 px-3.5 py-2 rounded-xl flex items-center gap-1 w-max"
+        </div>
+        
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => window.location.hash = '#/dashboard/flashcards'}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-violet hover:bg-violet-hover text-white text-xs font-bold transition-all shadow-soft hover:shadow-hover hover:scale-[1.02]"
           >
-            Open Full Analytics Board
-            <ChevronRight className="w-4 h-4" />
+            Review Now <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
+      </div>
 
-        {/* Heatmap calendar grid layout */}
-        <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between border-t border-slate-900 pt-5">
-          <div className="grid grid-flow-col grid-rows-7 gap-2.5 overflow-x-auto pb-2 pr-1 w-full max-w-2xl">
-            {Array.from({ length: 35 }).map((_, idx) => {
-              const opacity = idx % 5 === 0 ? 'bg-slate-900/40' : idx % 3 === 0 ? 'bg-emerald-950/40' : idx % 4 === 0 ? 'bg-emerald-500/80' : 'bg-emerald-700/60';
-              return (
-                <div 
-                  key={idx}
-                  className={`w-6 h-6 rounded-md ${opacity} border border-slate-950/20`}
-                ></div>
-              );
-            })}
-          </div>
+      {/* PANEL TOGGLE NAVIGATION TABS (Enclosed in a crisp bordered capsule bar) */}
+      <div className="flex items-center gap-1.5 p-1.5 rounded-full bg-paper-deep/80 border border-rule overflow-x-auto mb-8 shadow-sm">
+        {[
+          { id: 'metrics', label: 'Study Metrics Room', hash: '#/dashboard/metrics', icon: BookMarked, ink: 'charcoal' },
+          { id: 'explorer', label: 'Lectures & Folder Manager', hash: '#/dashboard/subjects', icon: Layers, ink: 'violet' },
+          { id: 'flashcards', label: 'SM-2 Flashcard Hub', hash: '#/dashboard/flashcards', icon: Brain, ink: 'violet' },
+          { id: 'exam', label: 'Timed Exam Simulator', hash: '#/dashboard/exam', icon: Timer, ink: 'coral' },
+          { id: 'voice', label: 'Voice Socratic Tutor', hash: '#/dashboard/voice', icon: Mic, ink: 'violet' },
+          { id: 'analytics', label: 'Progress Analytics', hash: '#/dashboard/analytics', icon: TrendingUp, ink: 'teal' },
+        ].map((tab) => {
+          const isActive = activePanel === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => { window.location.hash = tab.hash; }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                isActive
+                  ? 'bg-card text-charcoal border-rule/80 shadow-soft'
+                  : 'text-charcoal-soft border-transparent hover:bg-card/60 hover:text-charcoal hover:border-rule/40'
+              }`}
+            >
+              <Icon className={`w-3.5 h-3.5 ${
+                isActive ? (
+                  tab.ink === 'violet' ? 'text-violet' :
+                  tab.ink === 'coral' ? 'text-coral' :
+                  tab.ink === 'teal' ? 'text-teal' : 'text-charcoal'
+                ) : 'text-charcoal-soft'
+              }`} />
+              {tab.label}
+              {isActive && (
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  tab.ink === 'violet' ? 'bg-violet' :
+                  tab.ink === 'coral' ? 'bg-coral' :
+                  tab.ink === 'teal' ? 'bg-teal' : 'bg-charcoal'
+                }`}></span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-          <div className="flex md:flex-col justify-between items-start md:items-end w-full md:w-auto text-[10px] text-slate-500 gap-4">
-            <div className="flex gap-1.5 items-center">
-              <span>Less</span>
-              <div className="w-3.5 h-3.5 rounded bg-slate-900/40 border border-slate-950"></div>
-              <div className="w-3.5 h-3.5 rounded bg-emerald-950/30"></div>
-              <div className="w-3.5 h-3.5 rounded bg-emerald-900/50"></div>
-              <div className="w-3.5 h-3.5 rounded bg-emerald-500/80"></div>
-              <span>More</span>
+      {/* RENDER ACTIVE PANEL */}
+      {activePanel === 'metrics' ? (
+        <>
+          {/* TOP ROW STATS (4 Differentiated Ink Cards) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+            
+            {/* Stat 1: Time Studied Today (Coral Urgency/Streak Ink) */}
+            <div className="bg-card border border-card-border rounded-md p-5 shadow-soft flex flex-col justify-between min-h-[145px] metric-stripe-coral relative">
+              <div>
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-[11px] text-charcoal-soft uppercase tracking-wider font-bold font-mono">Studied Today</span>
+                  <div className="p-1.5 rounded-full bg-coral-soft text-coral">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold font-display text-charcoal tabular-nums">{studiedToday.toFixed(1)}</span>
+                  <span className="text-xs text-charcoal-soft">hours</span>
+                  
+                  {/* Micro Coral Sparkline */}
+                  <svg className="w-14 h-5 ml-auto text-coral" viewBox="0 0 50 20">
+                    <polyline fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" points="0,15 10,12 20,16 30,8 40,11 50,4" />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-2 border-t border-rule/60">
+                {!isLoggingTime ? (
+                  <button 
+                    onClick={() => setIsLoggingTime(true)}
+                    className="text-xs font-bold text-coral hover:text-coral-hover p-0 transition-colors flex items-center gap-1"
+                  >
+                    + Log study session
+                  </button>
+                ) : (
+                  <form onSubmit={handleLogTime} className="flex items-center gap-1.5">
+                    <input 
+                      type="number" 
+                      step="0.1" 
+                      min="0.1"
+                      required
+                      value={logAmount}
+                      onChange={(e) => setLogAmount(e.target.value)}
+                      placeholder="Hrs"
+                      className="w-16 px-2 py-1 text-xs rounded-sm bg-paper-deep border border-rule text-charcoal focus-ring"
+                    />
+                    <button type="submit" className="px-2.5 py-1 bg-coral text-white text-xs font-bold rounded-sm">Log</button>
+                    <button type="button" onClick={() => setIsLoggingTime(false)} className="px-1.5 py-1 text-charcoal-soft hover:text-charcoal text-xs">✕</button>
+                  </form>
+                )}
+              </div>
             </div>
-            <span>Streak: 7 Days Consistency</span>
+
+            {/* Stat 2: Weekly Hours & Goal (Teal Progress/Completion Ink) */}
+            <div className="bg-card border border-card-border rounded-md p-5 shadow-soft flex flex-col justify-between min-h-[145px] metric-stripe-teal relative">
+              <div>
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-[11px] text-charcoal-soft uppercase tracking-wider font-bold font-mono">Weekly Hours</span>
+                  <div className="p-1.5 rounded-full bg-teal-soft text-teal">
+                    <BookMarked className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl font-bold font-display text-charcoal tabular-nums">{weeklyHours.toFixed(1)}</span>
+                  <span className="text-xs text-charcoal-soft">/ {weeklyGoal} hrs</span>
+                </div>
+                <div className="w-full bg-paper-deep rounded-full h-2 mt-2 overflow-hidden border border-rule/50">
+                  <div 
+                    className="bg-teal h-full rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(100, (weeklyHours / weeklyGoal) * 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-3 pt-2 border-t border-rule/60">
+                {!isEditingGoal ? (
+                  <button 
+                    onClick={() => setIsEditingGoal(true)}
+                    className="text-xs font-bold text-teal hover:text-teal-hover p-0 transition-colors flex items-center gap-1"
+                  >
+                    Adjust weekly target
+                  </button>
+                ) : (
+                  <form onSubmit={handleSetGoal} className="flex items-center gap-1.5">
+                    <input 
+                      type="number" 
+                      step="1" 
+                      min="1"
+                      required
+                      value={newGoal}
+                      onChange={(e) => setNewGoal(e.target.value)}
+                      placeholder="Goal"
+                      className="w-16 px-2 py-1 text-xs rounded-sm bg-paper-deep border border-rule text-charcoal focus-ring"
+                    />
+                    <button type="submit" className="px-2.5 py-1 bg-teal text-white text-xs font-bold rounded-sm">Set</button>
+                    <button type="button" onClick={() => setIsEditingGoal(false)} className="px-1.5 py-1 text-charcoal-soft hover:text-charcoal text-xs">✕</button>
+                  </form>
+                )}
+              </div>
+            </div>
+
+            {/* Stat 3: Flashcards Due (Violet Recall/AI Ink) */}
+            <div className="bg-card border border-card-border rounded-md p-5 shadow-soft flex flex-col justify-between min-h-[145px] metric-stripe-violet relative">
+              <div>
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-[11px] text-charcoal-soft uppercase tracking-wider font-bold font-mono">Flashcards Due</span>
+                  <div className="p-1.5 rounded-full bg-violet-soft text-violet">
+                    <Brain className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl font-bold font-display text-charcoal tabular-nums">12</span>
+                  <span className="text-xs text-charcoal-soft">cards queued</span>
+                </div>
+              </div>
+              <div className="mt-3 pt-2 border-t border-rule/60 text-[11px] text-charcoal-soft flex items-center justify-between">
+                <span>SM-2 Interval Recall</span>
+                <span className="font-bold text-violet bg-violet-soft px-2 py-0.5 rounded-full">4 priority</span>
+              </div>
+            </div>
+
+            {/* Stat 4: Leaderboard Standings (Gold Achievement Ink) */}
+            <div className="bg-card border border-card-border rounded-md p-5 shadow-soft flex flex-col justify-between min-h-[145px] metric-stripe-gold relative">
+              <div>
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-[11px] text-charcoal-soft uppercase tracking-wider font-bold font-mono">Study Standing</span>
+                  <div className="p-1.5 rounded-full bg-gold-soft text-[#9A7412]">
+                    <Award className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl font-bold font-display text-charcoal tabular-nums">#4</span>
+                  <span className="text-xs text-charcoal-soft">cohort rank</span>
+                </div>
+              </div>
+              <div className="mt-3 pt-2 border-t border-rule/60 text-[11px] text-charcoal-soft flex items-center justify-between">
+                <span>Score: <strong className="text-charcoal font-bold">8,840 XP</strong></span>
+                <span className="font-bold text-[#8A6A10] bg-gold-soft px-2 py-0.5 rounded-full">Top 4%</span>
+              </div>
+            </div>
+
           </div>
-        </div>
-      </motion.div>
-      </>
+
+          {/* TWO-COLUMN CONSOLE GRID (32px-40px vertical rhythm) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-10">
+            
+            {/* LEFT COLUMN: Today's Study Plan + Subjects Progress + Weak Concepts (6 cols) */}
+            <div className="lg:col-span-6 space-y-8">
+              
+              {/* Card 1: Today's Study Plan (Teal Progress & Violet Checkmarks) */}
+              <div className="bg-card border border-card-border rounded-lg p-6 sm:p-7 shadow-soft">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h3 className="text-lg font-bold font-display text-charcoal flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-teal" />
+                      Today's Study Plan
+                    </h3>
+                    <span className="text-xs text-charcoal-soft">Active recall daily checklist</span>
+                  </div>
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-teal-soft text-teal border border-teal/20">
+                    {progressPercent}% Complete
+                  </span>
+                </div>
+
+                {/* Teal Progress Bar */}
+                <div className="w-full bg-paper-deep rounded-full h-2 mb-5 overflow-hidden border border-rule/60">
+                  <div 
+                    className="bg-teal h-full rounded-full transition-all duration-300"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+
+                {/* Add Custom Task Form */}
+                <form onSubmit={handleAddTask} className="flex gap-2 mb-5">
+                  <input 
+                    type="text" 
+                    value={newTaskText}
+                    onChange={(e) => setNewTaskText(e.target.value)}
+                    placeholder="Add a custom study task for today…"
+                    className="flex-1 px-3.5 py-2 bg-paper-deep border border-rule rounded-md text-xs text-charcoal focus-ring"
+                  />
+                  <select
+                    value={newTaskCategory}
+                    onChange={(e) => setNewTaskCategory(e.target.value)}
+                    className="px-3 py-2 bg-paper-deep border border-rule rounded-md text-xs text-charcoal-soft focus-ring"
+                  >
+                    <option value="General">General</option>
+                    <option value="AI">AI</option>
+                    <option value="Physics">Physics</option>
+                    <option value="Economics">Economics</option>
+                  </select>
+                  <button 
+                    type="submit" 
+                    className="px-4 py-2 bg-charcoal hover:bg-coral text-paper text-xs font-bold rounded-md transition-colors flex items-center gap-1 shadow-soft"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add
+                  </button>
+                </form>
+
+                {/* Task Checklist Items */}
+                <div className="space-y-2.5 mb-2 max-h-72 overflow-y-auto pr-1">
+                  {tasks.map(task => (
+                    <div 
+                      key={task.id}
+                      onClick={() => toggleTask(task.id)}
+                      className={`flex items-center gap-3.5 p-3 rounded-md border text-left transition-all cursor-pointer ${
+                        task.completed 
+                          ? 'bg-paper-deep/60 border-rule/70 text-charcoal-soft' 
+                          : 'bg-card border-card-border text-charcoal hover:bg-paper-deep/40 hover:border-violet/40 shadow-soft'
+                      }`}
+                    >
+                      {/* Custom Checkbox (Filled Violet when completed) */}
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
+                        task.completed 
+                          ? 'bg-violet border-violet text-white shadow-sm' 
+                          : 'border-rule bg-card hover:border-violet'
+                      }`}>
+                        {task.completed && <CheckCircle2 className="w-4 h-4" />}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-medium leading-snug truncate ${task.completed ? 'line-through opacity-70' : ''}`}>
+                          {task.text}
+                        </p>
+                        <span className="text-[9px] uppercase font-mono text-charcoal-soft font-bold">{task.category}</span>
+                      </div>
+
+                      {task.completed && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-soft text-teal shrink-0">
+                          done ✓
+                        </span>
+                      )}
+
+                      <button
+                        onClick={(e) => handleDeleteTask(task.id, e)}
+                        className="text-charcoal-soft hover:text-coral p-1 transition-colors"
+                        aria-label="Delete task"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  {tasks.length === 0 && (
+                    <p className="text-center py-4 text-xs text-charcoal-soft">Nothing due today. Add a study item above!</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Card 2: Subjects Syllabus Progress */}
+              <div className="bg-card border border-card-border rounded-lg p-6 sm:p-7 shadow-soft">
+                <h3 className="text-lg font-bold font-display text-charcoal flex items-center gap-2 mb-1">
+                  <BookOpen className="w-5 h-5 text-violet" />
+                  Subjects Syllabus Progress
+                </h3>
+                <p className="text-xs text-charcoal-soft mb-5">Course content comprehension metrics.</p>
+
+                <div className="space-y-4">
+                  {subjectsProgress.map((sub, idx) => (
+                    <div key={idx} className="space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-bold text-charcoal truncate max-w-[280px]">{sub.name}</span>
+                        <span className="font-mono text-charcoal-soft font-semibold tabular-nums">{sub.progress}%</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 bg-paper-deep rounded-full h-2 overflow-hidden border border-rule/60">
+                          <div 
+                            className={`h-full rounded-full ${
+                              idx === 0 ? 'bg-violet' : idx === 1 ? 'bg-teal' : 'bg-gold'
+                            }`}
+                            style={{ width: `${sub.progress}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] text-charcoal-soft font-mono shrink-0">{sub.hours}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Card 3: Concepts Requiring Attention (Coral Warning) */}
+              <div className="bg-card border border-card-border rounded-lg p-6 sm:p-7 shadow-soft">
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="text-lg font-bold font-display text-charcoal flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-coral" />
+                    Concepts Requiring Attention
+                  </h3>
+                  <span className="font-handwriting text-xs text-coral font-bold">needs drill</span>
+                </div>
+                <p className="text-xs text-charcoal-soft mb-5">Identified via diagnostic quiz accuracy.</p>
+
+                <div className="space-y-3">
+                  {weakTopics.map((wt, idx) => (
+                    <div 
+                      key={idx}
+                      className="p-3.5 rounded-md border border-coral/25 bg-coral-soft/50 flex items-start justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold text-coral uppercase font-mono block mb-0.5">
+                          {wt.subject} · {wt.accuracy} Accuracy
+                        </span>
+                        <p className="text-xs font-semibold text-charcoal leading-snug truncate">
+                          {wt.topic}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => window.location.hash = '#/dashboard/flashcards'}
+                        className="text-xs font-bold text-coral hover:underline shrink-0 bg-card px-3 py-1 rounded border border-coral/30"
+                      >
+                        Practice
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+            {/* RIGHT COLUMN: Upcoming Exam Deadlines + Revision Schedule + Leaderboard (6 cols) */}
+            <div className="lg:col-span-6 space-y-8">
+              
+              {/* Card 4: Upcoming Exam Deadlines (Coral Urgency & Prep Progress Bars) */}
+              <div className="bg-card border border-card-border rounded-lg p-6 sm:p-7 shadow-soft">
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="text-lg font-bold font-display text-charcoal flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-coral" />
+                    Upcoming Exam Deadlines
+                  </h3>
+                  <span className="text-xs font-bold text-coral bg-coral-soft px-2.5 py-0.5 rounded-full font-mono">
+                    Countdown
+                  </span>
+                </div>
+                <p className="text-xs text-charcoal-soft mb-5">Target preparation timelines & elapsed study time.</p>
+
+                <div className="space-y-4">
+                  {upcomingExams.map(exam => {
+                    const elapsedPercent = exam.daysLeft <= 6 ? 78 : exam.daysLeft <= 9 ? 62 : 45;
+                    return (
+                      <div 
+                        key={exam.id}
+                        className="p-4 rounded-md bg-paper-deep border border-rule space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="min-w-0">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full border font-mono uppercase font-bold ${
+                              exam.course === 'Physics' ? 'bg-violet-soft text-violet border-violet/20' :
+                              exam.course === 'AI' ? 'bg-coral-soft text-coral border-coral/20' :
+                              'bg-gold-soft text-[#9A7412] border-gold/20'
+                            }`}>
+                              {exam.course}
+                            </span>
+                            <h4 className="text-xs font-bold text-charcoal mt-1 truncate">{exam.title}</h4>
+                            <span className="text-[11px] text-charcoal-soft">{exam.date}</span>
+                          </div>
+                          
+                          <div className="text-right shrink-0">
+                            <span className={`block text-xl font-bold font-display tabular-nums ${exam.daysLeft <= 7 ? 'text-coral' : 'text-charcoal'}`}>
+                              {exam.daysLeft}d
+                            </span>
+                            <span className="text-[10px] text-charcoal-soft uppercase font-mono">remaining</span>
+                          </div>
+                        </div>
+
+                        {/* Prep-Time Progress Bar */}
+                        <div className="space-y-1 pt-1">
+                          <div className="flex justify-between text-[10px] text-charcoal-soft font-mono">
+                            <span>Prep Velocity</span>
+                            <span>{elapsedPercent}% elapsed</span>
+                          </div>
+                          <div className="w-full bg-card rounded-full h-1.5 overflow-hidden border border-rule/60">
+                            <div 
+                              className={`h-full rounded-full ${exam.daysLeft <= 7 ? 'bg-coral' : 'bg-violet'}`}
+                              style={{ width: `${elapsedPercent}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Card 5: Spaced Repetition Revision Schedule (Teal Timeline) */}
+              <div className="bg-card border border-card-border rounded-lg p-6 sm:p-7 shadow-soft">
+                <h3 className="text-lg font-bold font-display text-charcoal flex items-center gap-2 mb-1">
+                  <RotateCcw className="w-5 h-5 text-teal" />
+                  Revision Schedule (SM-2 Intervals)
+                </h3>
+                <p className="text-xs text-charcoal-soft mb-5">Review checkpoints spaced for optimal memory decay.</p>
+
+                <div className="relative pl-5 border-l-2 border-dashed border-teal/40 space-y-4 py-1">
+                  {revisionSchedule.map((rev, idx) => (
+                    <div key={idx} className="relative">
+                      <div className="absolute -left-[27px] top-1.5 w-3 h-3 rounded-full bg-teal border-2 border-card"></div>
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="text-xs font-bold text-charcoal truncate max-w-xs">{rev.topic}</h4>
+                        <span className="text-[10px] text-charcoal-soft font-mono shrink-0">{rev.time}</span>
+                      </div>
+                      <span className="text-[11px] text-teal font-semibold">{rev.interval}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Card 6: Weekly Cohort Leaderboard (Gold Achievement) */}
+              <div className="bg-card border border-card-border rounded-lg p-6 sm:p-7 shadow-soft">
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="text-lg font-bold font-display text-charcoal flex items-center gap-2">
+                    <Award className="w-5 h-5 text-[#E3A62F]" />
+                    Weekly Cohort Leaderboard
+                  </h3>
+                  <span className="font-handwriting text-xs text-[#9A7412] font-bold">study together</span>
+                </div>
+                <p className="text-xs text-charcoal-soft mb-4">Rankings based on active recall accuracy.</p>
+
+                <div className="divide-y divide-rule/60">
+                  {leaderboard.map((user) => (
+                    <div 
+                      key={user.rank} 
+                      className={`flex items-center justify-between py-2.5 px-3 rounded-md transition-colors ${
+                        user.isCurrentUser ? 'bg-gold-soft/60 border border-gold/30' : 'hover:bg-paper-deep/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
+                          user.rank === 1 ? 'bg-gold text-white shadow-sm' :
+                          user.rank === 2 ? 'bg-paper-deep text-charcoal border border-rule' :
+                          user.rank === 3 ? 'bg-coral-soft text-coral' : 'text-charcoal-soft'
+                        }`}>
+                          {user.rank}
+                        </span>
+                        <span className={`text-xs ${user.isCurrentUser ? 'font-bold text-charcoal' : 'text-charcoal font-medium'}`}>
+                          {user.name}
+                        </span>
+                      </div>
+                      <span className="font-mono text-xs font-bold text-charcoal tabular-nums">
+                        {user.score.toLocaleString()} XP
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+          <div className="bg-card border border-card-border rounded-lg p-6 sm:p-7 shadow-soft">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 className="text-lg font-bold font-display text-charcoal flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-teal" />
+                  35-Day Consistency Heatmap
+                </h3>
+                <p className="text-xs text-charcoal-soft">Calendar grid of active study sessions logged.</p>
+              </div>
+              <button 
+                onClick={() => window.location.hash = '#/dashboard/analytics'}
+                className="text-xs font-bold text-teal hover:underline inline-flex items-center gap-1"
+              >
+                Full Analytics Report <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-3 border-t border-rule/60">
+              <div className="grid grid-flow-col grid-rows-7 gap-2 overflow-x-auto pb-1 max-w-xl">
+                {Array.from({ length: 35 }).map((_, idx) => {
+                  const color = idx % 5 === 0 ? 'bg-paper-deep' : idx % 3 === 0 ? 'bg-teal-soft' : idx % 4 === 0 ? 'bg-[#7FCBAE]' : 'bg-teal';
+                  return (
+                    <div 
+                      key={idx}
+                      className={`w-5 h-5 rounded-sm ${color} border border-rule/60`}
+                    />
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center gap-2 text-[10px] text-charcoal-soft font-mono">
+                <span>Less</span>
+                <div className="w-3.5 h-3.5 rounded-sm bg-paper-deep border border-rule"></div>
+                <div className="w-3.5 h-3.5 rounded-sm bg-teal-soft"></div>
+                <div className="w-3.5 h-3.5 rounded-sm bg-[#7FCBAE]"></div>
+                <div className="w-3.5 h-3.5 rounded-sm bg-teal"></div>
+                <span>More</span>
+              </div>
+            </div>
+          </div>
+
+        </>
       ) : activePanel === 'explorer' ? (
-        <SubjectExplorer currentUser={currentUser} />
+        <SubjectExplorer currentUser={currentUser} onShowToast={onShowToast} />
       ) : activePanel === 'flashcards' ? (
-        <FlashcardHub currentUser={currentUser} />
+        <FlashcardHub currentUser={currentUser} onShowToast={onShowToast} />
       ) : activePanel === 'exam' ? (
-        <ExamSimulator />
+        <ExamSimulator onShowToast={onShowToast} />
       ) : activePanel === 'voice' ? (
         <VoiceTutor />
       ) : (
         <AnalyticsPanel studiedToday={studiedToday} weeklyHours={weeklyHours} weeklyGoal={weeklyGoal} />
       )}
+
+      {/* WEEKLY PAGE TURN MODAL */}
+      <WeeklyPageTurnModal
+        isOpen={isWeeklyPageTurnOpen}
+        onClose={() => setIsWeeklyPageTurnOpen(false)}
+        stats={{ studiedToday, weeklyHours, weeklyGoal }}
+      />
     </div>
   );
 }

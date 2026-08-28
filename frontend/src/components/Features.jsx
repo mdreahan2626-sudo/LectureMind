@@ -1,102 +1,98 @@
 import React from 'react';
-import { Sparkles, Terminal, GitBranch, KeyRound, HelpCircle, FileText } from 'lucide-react';
+import { Terminal, GitBranch, KeyRound, HelpCircle, Brain } from 'lucide-react';
 
 export default function Features() {
   return (
-    <section id="features" className="py-32 relative z-10 border-t border-studio-border bg-studio-bg">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+    <section id="features" className="py-24 relative z-10 bg-paper border-t border-rule">
+      <div className="max-w-[1180px] mx-auto px-4 sm:px-8">
         
         {/* Asymmetrical Split Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
           
-          {/* Left Column - Sticky Philosophical Intro */}
-          <div className="lg:col-span-5 lg:sticky lg:top-32 space-y-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-studio-surface border border-studio-border text-studio-purple text-xs font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-studio-purple animate-ping"></span>
-              THE METHODOLOGY
+          {/* Left Column - Sticky Intro */}
+          <div className="lg:col-span-5 lg:sticky lg:top-28 space-y-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-soft text-violet text-xs font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-violet"></span>
+              The Socratic Method
             </div>
             
-            <h2 className="text-4xl sm:text-5xl font-bold font-space tracking-tight text-studio-textLight leading-tight">
+            <h2 className="text-3xl sm:text-4xl font-bold font-display text-charcoal leading-tight tracking-tight">
               Stop reading summaries. <br />
-              <span className="text-[#A78BFA]">Start answering questions.</span>
+              <span className="italic text-coral font-serif">Synthesize what you learn.</span>
             </h2>
             
-            <p className="text-base text-studio-slate leading-relaxed">
-              Most study assistants act as simple dictation engines. They summarize a two-hour lecture into paragraphs you will glance at once and forget. 
+            <p className="text-sm text-charcoal-soft leading-relaxed">
+              Most study assistants act as passive dictation engines. They summarize a 2-hour lecture into dense bullet points you glance at once and quickly forget.
             </p>
             
-            <p className="text-base text-studio-slate leading-relaxed">
-              LectureMind uses a different approach. It builds a structural model of your lecture and engages you with targeted inquiries, forcing you to recall details and connect raw facts into structured concepts.
+            <p className="text-sm text-charcoal-soft leading-relaxed">
+              LectureMind constructs a structured knowledge graph of your course materials and engages you with targeted inquiries, prompting you to actively recall details and link raw facts into enduring mental models.
             </p>
 
-            <div className="pt-6 border-t border-studio-border">
-              <div className="font-mono text-xs text-studio-textMuted flex items-center gap-2">
-                <Terminal className="w-3.5 h-3.5 text-studio-purple" />
-                <span>active_synthesis_engine v1.0</span>
+            <div className="pt-4 border-t border-rule">
+              <div className="text-xs text-charcoal-soft font-mono flex items-center gap-2">
+                <Terminal className="w-3.5 h-3.5 text-violet" />
+                <span>active_synthesis_engine v2.0</span>
               </div>
             </div>
           </div>
 
-          {/* Right Column - Asymmetric Capability Blocks */}
-          <div className="lg:col-span-7 space-y-12">
+          {/* Right Column - 4 Ink Capability Blocks */}
+          <div className="lg:col-span-7 space-y-5">
             
-            {/* Feature Block 1 */}
-            <div className="bg-studio-surface border border-studio-border p-8 rounded-3xl relative overflow-hidden transition-all hover:border-studio-purple/40">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-studio-purple/5 rounded-full blur-xl"></div>
-              <div className="font-mono text-xs text-studio-purple mb-4 flex items-center gap-1.5">
+            {/* Block 1: Violet (Ingestion) */}
+            <div className="bg-card border border-card-border p-6 rounded-md shadow-soft hover:shadow-hover transition-all metric-stripe-violet">
+              <div className="text-xs font-bold text-violet mb-2 flex items-center gap-1.5 font-mono">
                 <KeyRound className="w-3.5 h-3.5" />
-                [INGESTION & STRUCTURE]
+                01 · Multi-Format Ingestion
               </div>
-              <h3 className="text-2xl font-bold font-space text-studio-textLight mb-3">
-                Multimodal Context Mapping
+              <h3 className="text-base font-bold font-display text-charcoal mb-1.5">
+                Hierarchical Knowledge Structuring
               </h3>
-              <p className="text-studio-slate text-sm leading-relaxed">
-                Ingest textbook PDFs, lecture audio, seminar recordings, or raw lecture text. Our parser identifies key concepts, technical nomenclature, and logical hierarchy rather than just pulling keywords.
+              <p className="text-xs text-charcoal-soft leading-relaxed">
+                Ingest textbook PDFs, lecture audio recordings, seminar videos, or typed notes. Our parser extracts concept taxonomy, definitions, and prerequisite chains rather than simple keyword lists.
               </p>
             </div>
 
-            {/* Feature Block 2 */}
-            <div className="bg-studio-surface border border-studio-border p-8 rounded-3xl relative overflow-hidden transition-all hover:border-studio-purple/40 lg:translate-x-6">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-studio-purple/5 rounded-full blur-xl"></div>
-              <div className="font-mono text-xs text-studio-purple mb-4 flex items-center gap-1.5">
+            {/* Block 2: Coral (Socratic Inquiry) */}
+            <div className="bg-card border border-card-border p-6 rounded-md shadow-soft hover:shadow-hover transition-all metric-stripe-coral">
+              <div className="text-xs font-bold text-coral mb-2 flex items-center gap-1.5 font-mono">
                 <HelpCircle className="w-3.5 h-3.5" />
-                [SOCRATIC TUTORING]
+                02 · Socratic Diagnostic Inquiry
               </div>
-              <h3 className="text-2xl font-bold font-space text-studio-textLight mb-3">
-                Adaptive Study Dialogue
+              <h3 className="text-base font-bold font-display text-charcoal mb-1.5">
+                Adaptive Dialogue That Probes Weak Spots
               </h3>
-              <p className="text-studio-slate text-sm leading-relaxed">
-                An active chatbot that behaves like an instructor. It prompts you to define terms, identify logical fallacies in your explanation, and guides you toward the answers.
+              <p className="text-xs text-charcoal-soft leading-relaxed">
+                An active voice and text tutor that behaves like an encouraging instructor. It asks you to explain concepts in your own words, catches logical gaps, and guides you with gentle hints.
               </p>
             </div>
 
-            {/* Feature Block 3 */}
-            <div className="bg-studio-surface border border-studio-border p-8 rounded-3xl relative overflow-hidden transition-all hover:border-studio-purple/40">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-studio-purple/5 rounded-full blur-xl"></div>
-              <div className="font-mono text-xs text-studio-purple mb-4 flex items-center gap-1.5">
+            {/* Block 3: Teal (Concept Maps) */}
+            <div className="bg-card border border-card-border p-6 rounded-md shadow-soft hover:shadow-hover transition-all metric-stripe-teal">
+              <div className="text-xs font-bold text-teal mb-2 flex items-center gap-1.5 font-mono">
                 <GitBranch className="w-3.5 h-3.5" />
-                [VISUAL ASSOCIATION]
+                03 · Visual Association Maps
               </div>
-              <h3 className="text-2xl font-bold font-space text-studio-textLight mb-3">
-                Interactive Mind Maps
+              <h3 className="text-base font-bold font-display text-charcoal mb-1.5">
+                Interactive Concept Graphs
               </h3>
-              <p className="text-studio-slate text-sm leading-relaxed">
-                Concepts do not exist in isolation. The visual network links related flashcards, notes, and topics, showing you how changes in one concept cascade into others.
+              <p className="text-xs text-charcoal-soft leading-relaxed">
+                Ideas don't exist in isolation. Our visual network links related flashcards, lecture timestamps, and chapters so you understand how changing one premise impacts downstream theories.
               </p>
             </div>
 
-            {/* Feature Block 4 */}
-            <div className="bg-studio-surface border border-studio-border p-8 rounded-3xl relative overflow-hidden transition-all hover:border-studio-purple/40 lg:translate-x-6">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-studio-purple/5 rounded-full blur-xl"></div>
-              <div className="font-mono text-xs text-studio-purple mb-4 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5" />
-                [FLEXIBLE MEMORIZATION]
+            {/* Block 4: Gold (Spaced Repetition) */}
+            <div className="bg-card border border-card-border p-6 rounded-md shadow-soft hover:shadow-hover transition-all metric-stripe-gold">
+              <div className="text-xs font-bold text-[#9A7412] mb-2 flex items-center gap-1.5 font-mono">
+                <Brain className="w-3.5 h-3.5" />
+                04 · SM-2 Spaced Repetition
               </div>
-              <h3 className="text-2xl font-bold font-space text-studio-textLight mb-3">
-                Cloze & Standard Flashcards
+              <h3 className="text-base font-bold font-display text-charcoal mb-1.5">
+                Active Recall Timed for Long-Term Memory
               </h3>
-              <p className="text-studio-slate text-sm leading-relaxed">
-                Generate flashcards on demand. Supports standard Q&A layouts alongside fill-in-the-blank Cloze deletions, ideal for learning formulas, code syntax, and complex technical definitions.
+              <p className="text-xs text-charcoal-soft leading-relaxed">
+                Generates cloze deletions and concept flashcards automatically. The SuperMemo SM-2 algorithm schedules reviews right before your brain forgets, locking knowledge into permanent retention.
               </p>
             </div>
 

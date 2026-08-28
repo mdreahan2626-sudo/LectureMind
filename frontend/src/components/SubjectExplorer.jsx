@@ -1,38 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { API_URL } from '../config';
 import { 
   Folder, 
   FolderPlus, 
   FileText, 
-  FileCode, 
-  Image as ImageIcon,
   Plus, 
   FolderOpen, 
   ArrowLeft, 
-  Tag, 
   BookOpen, 
   UploadCloud, 
-  ChevronRight,
-  Eye,
-  Trash2,
-  AlertCircle
+  ChevronRight, 
+  Eye, 
+  LayoutGrid, 
+  List, 
+  CheckCircle2, 
+  Brain, 
+  Clock, 
+  Sparkles, 
+  X 
 } from 'lucide-react';
 
-export default function SubjectExplorer({ currentUser }) {
+export default function SubjectExplorer({ currentUser: _currentUser, onShowToast }) {
   const [subjects, setSubjects] = useState([]);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
   
-  // Browsing Navigation Path State
-  // path = [] => main subjects view
-  // path = [{type: 'subject', id, name}] => subject view (showing chapters)
-  // path = [{type: 'subject', id}, {type: 'chapter', id, name}] => chapter view (showing topics)
-  // path = [{type: 'subject', id}, {type: 'chapter', id}, {type: 'topic', id, name}] => topic view (showing materials)
+  // Browsing Navigation Path: [] -> Root, [{id, name, type:'subject'}], ...
   const [navigationPath, setNavigationPath] = useState([]);
   
+  // Drag & Drop Upload Zone States
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadProcessing, setUploadProcessing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState('Transcribing…');
+  const fileInputRef = useRef(null);
+
   // Form Toggles & Inputs
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [subjName, setSubjName] = useState('');
   const [subjDesc, setSubjDesc] = useState('');
-  const [subjColor, setSubjColor] = useState('from-blue-600 to-indigo-600');
   const [subjTags, setSubjTags] = useState('');
 
   const [isAddingChapter, setIsAddingChapter] = useState(false);
@@ -41,26 +46,14 @@ export default function SubjectExplorer({ currentUser }) {
   const [isAddingTopic, setIsAddingTopic] = useState(false);
   const [topName, setTopName] = useState('');
 
-  const [isAddingMaterial, setIsAddingMaterial] = useState(false);
-  const [matType, setMatType] = useState('note'); // 'note' | 'pdf' | 'ppt' | 'image'
-  const [matName, setMatName] = useState('');
-  const [matContent, setMatContent] = useState('');
-  const [matSize, setMatSize] = useState('1.5 MB');
-
-  // Reader Modal State
+  // Reader Modal State with Timestamp Sync & Concept Map
   const [activeMaterial, setActiveMaterial] = useState(null);
-  const [selectedText, setSelectedText] = useState('');
+  const [highlightedTimestamp, setHighlightedTimestamp] = useState(null);
+  const [selectedConceptNode, setSelectedConceptNode] = useState(null);
+  const [conceptMapFilter, setConceptMapFilter] = useState('');
+  const [notesRefinementStatus, setNotesRefinementStatus] = useState('');
 
-  // Gradient Color Options for Subjects
-  const colorGradients = [
-    { name: 'Quantum Blue', value: 'from-blue-600 to-indigo-600' },
-    { name: 'Emerald Wave', value: 'from-teal-500 to-emerald-600' },
-    { name: 'Solar Flare', value: 'from-orange-500 to-amber-600' },
-    { name: 'Aurora Neon', value: 'from-cyan-500 to-blue-500' },
-    { name: 'Deep Purple', value: 'from-purple-600 to-indigo-700' }
-  ];
-
-  // Fetch or Load Folders Tree
+  // Load Tree
   useEffect(() => {
     fetchSubjectTree();
   }, []);
@@ -70,9 +63,7 @@ export default function SubjectExplorer({ currentUser }) {
     if (token) {
       try {
         const res = await fetch(`${API_URL}/api/subjects`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
         if (res.ok && data.success) {
@@ -80,7 +71,7 @@ export default function SubjectExplorer({ currentUser }) {
           return;
         }
       } catch (err) {
-        console.error("Failed to load database subjects tree:", err.message);
+        console.error("Failed to load DB subjects:", err.message);
       }
     }
     loadFallbackLocalTree();
@@ -91,36 +82,74 @@ export default function SubjectExplorer({ currentUser }) {
     if (local) {
       setSubjects(JSON.parse(local));
     } else {
-      // Seed default subject workspace for Guest Mode
       const seedData = [
         {
-          id: "guest-sub-1",
+          id: "sub-1",
           name: "Deep Learning & Representation Learning",
-          description: "Multi-layer Neural Networks, gradient flow calculus, and transformer self-attention.",
-          color: "from-blue-600 to-indigo-600",
-          tags: "AI, Neural Networks",
+          description: "Multi-layer Perceptrons, backpropagation gradients, and attention architectures.",
+          tags: "AI, Calculus",
           chapters: [
             {
-              id: "guest-chap-1",
+              id: "chap-1",
               name: "Chapter 1: Multi-layer Perceptrons",
               topics: [
                 {
-                  id: "guest-top-1",
-                  name: "Backpropagation Chain Rule",
+                  id: "top-1",
+                  name: "Backpropagation & Gradient Flow",
                   materials: [
                     {
-                      id: "guest-mat-1",
-                      name: "Chain Rule Derivatives Note",
+                      id: "mat-1",
+                      name: "Backpropagation Mathematical Derivation.note",
                       type: "note",
-                      content: "Backpropagation utilizes the mathematical Chain Rule to compute partial derivatives of the Loss Function with respect to each weight. \n\nFormula: ∂L/∂W_i = (∂L/∂a) * (∂a/∂z) * (∂z/∂W_i)\n\nThis process propagates errors backwards starting from output layers down to shallow layers.",
-                      fileSize: "4 KB"
-                    },
+                      content: "Backpropagation applies the mathematical Chain Rule to compute partial derivatives of the objective Loss with respect to every weight in a deep neural network.\n\nKey formula:\n∂L/∂w_i = (∂L/∂a) * (∂a/∂z) * (∂z/∂w_i)\n\nSignals propagate backwards starting from output predictions down to shallow layers. Activation functions like ReLU keep gradient signals steady (derivative = 1 for positive inputs), preventing vanishing gradient decay.",
+                      fileSize: "4 KB",
+                      transcript: [
+                        { time: "04:15", text: "Let us start by deriving the chain rule across two dense layers." },
+                        { time: "12:30", text: "Notice how the gradient signal depends on the activation function derivative." },
+                        { time: "18:42", text: "With Sigmoid, saturation near 0 or 1 causes vanishing gradients." },
+                        { time: "24:10", text: "ReLU solves this by maintaining a constant slope of 1 for all positive inputs." }
+                      ],
+                      concepts: [
+                        { id: 'c1', name: 'Chain Rule', mastery: 85, definition: 'Calculus formula for computing derivative of composite functions.' },
+                        { id: 'c2', name: 'Vanishing Gradient', mastery: 38, definition: 'Exponential decay of gradient magnitudes in early network layers.' },
+                        { id: 'c3', name: 'ReLU Activation', mastery: 92, definition: 'Rectified linear unit: returns 0 for negative inputs and x for positive.' }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: "sub-2",
+          name: "Quantum Mechanics & Wave Theory",
+          description: "Schrödinger wave equation, Born probability density, and superposition limits.",
+          tags: "Physics, Math",
+          chapters: [
+            {
+              id: "chap-2",
+              name: "Chapter 1: Wave-Particle Duality",
+              topics: [
+                {
+                  id: "top-2",
+                  name: "Schrödinger Probability Equations",
+                  materials: [
                     {
-                      id: "guest-mat-2",
-                      name: "Backpropagation Lecture Slides.pdf",
-                      type: "pdf",
-                      fileUrl: "http://localhost:5173/mock-docs/backprop.pdf",
-                      fileSize: "3.2 MB"
+                      id: "mat-2",
+                      name: "Schrödinger Equations & Superposition Notes.note",
+                      type: "note",
+                      content: "The Schrödinger wave equation is the foundational law of non-relativistic quantum systems.\n\nThe square magnitude |ψ|² represents Born's spatial probability density of locating a particle in space and time. A quantum system remains in a superposition of eigenstates until an observation triggers wavefunction collapse.",
+                      fileSize: "5 KB",
+                      transcript: [
+                        { time: "06:10", text: "The classical wave equation cannot account for the photoelectric threshold." },
+                        { time: "15:20", text: "Born proposed that |ψ|² is not physical matter density, but probability density." },
+                        { time: "28:45", text: "Superposition allows simultaneous states until measurement collapses the wave packet." }
+                      ],
+                      concepts: [
+                        { id: 'q1', name: 'Born Interpretation', mastery: 79, definition: 'Equating |ψ|² to particle spatial probability density.' },
+                        { id: 'q2', name: 'Wavefunction Collapse', mastery: 52, definition: 'Transition of a quantum state to a single eigenstate upon measurement.' }
+                      ]
                     }
                   ]
                 }
@@ -139,265 +168,153 @@ export default function SubjectExplorer({ currentUser }) {
     localStorage.setItem('lecturemind_guest_subjects', JSON.stringify(updatedTree));
   };
 
-  // CREATE SUBJECT
-  const handleCreateSubject = async (e) => {
+  // Drag & Drop Ingestion Handler
+  const handleDrag = (e) => {
     e.preventDefault();
-    if (!subjName) return;
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    else if (e.type === "dragleave") setDragActive(false);
+  };
 
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const res = await fetch(`${API_URL}/api/subjects`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            name: subjName,
-            description: subjDesc,
-            color: subjColor,
-            tags: subjTags
-          })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          setSubjects([data.subject, ...subjects]);
-          resetSubjectForm();
-          return;
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processUploadedFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const processUploadedFile = (file) => {
+    setUploadProcessing(true);
+    setUploadProgress(0);
+    setUploadStage("Transcribing media stream…");
+
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        const next = prev + 15;
+        if (next >= 30 && next < 60) setUploadStage("Extracting concept taxonomy…");
+        else if (next >= 60 && next < 90) setUploadStage("Building structured notes & flashcards…");
+        else if (next >= 90) setUploadStage("Ready");
+
+        if (next >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            setUploadProcessing(false);
+            addNewLectureMaterialFromFile(file);
+            if (onShowToast) onShowToast(`Ingested "${file.name}" into your workspace`, 'success');
+          }, 300);
+          return 100;
         }
-      } catch (err) {
-        console.error("Create subject failed:", err.message);
+        return next;
+      });
+    }, 150);
+  };
+
+  const addNewLectureMaterialFromFile = (file) => {
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+    const newMaterial = {
+      id: "mat-" + Date.now(),
+      name: `${nameWithoutExt}.note`,
+      type: file.type.includes('pdf') ? 'pdf' : file.type.includes('audio') ? 'audio' : 'note',
+      content: `Automated notes generated from ${file.name}.\n\nThis material covers key structural concepts, formulas, and definitions extracted by LectureMind AI.`,
+      fileSize: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+      transcript: [
+        { time: "00:30", text: "Introduction to the main lecture theme and syllabus goals." },
+        { time: "14:15", text: "Detailed mathematical breakdown of the core principles." },
+        { time: "28:50", text: "Summary review and practical diagnostic examples." }
+      ],
+      concepts: [
+        { id: 'nc1', name: nameWithoutExt, mastery: 65, definition: 'Core subject concept extracted from lecture upload.' }
+      ]
+    };
+
+    if (subjects.length > 0) {
+      const updated = [...subjects];
+      if (updated[0].chapters && updated[0].chapters[0]?.topics && updated[0].chapters[0].topics[0]) {
+        updated[0].chapters[0].topics[0].materials.unshift(newMaterial);
+        saveLocalTree(updated);
       }
     }
+  };
 
-    // Guest Fallback
-    const newSubject = {
-      id: "guest-sub-" + Date.now(),
+  // CREATE SUBJECT
+  const handleCreateSubject = (e) => {
+    e.preventDefault();
+    if (!subjName) return;
+    const newSubj = {
+      id: "sub-" + Date.now(),
       name: subjName,
       description: subjDesc,
-      color: subjColor,
       tags: subjTags,
       chapters: []
     };
-    saveLocalTree([newSubject, ...subjects]);
-    resetSubjectForm();
-  };
-
-  const resetSubjectForm = () => {
+    saveLocalTree([newSubj, ...subjects]);
     setSubjName('');
     setSubjDesc('');
-    setSubjColor('from-blue-600 to-indigo-600');
     setSubjTags('');
     setIsAddingSubject(false);
+    if (onShowToast) onShowToast('New course subject created', 'success');
   };
 
   // CREATE CHAPTER
-  const handleCreateChapter = async (e) => {
+  const handleCreateChapter = (e) => {
     e.preventDefault();
-    if (!chapName) return;
-    const currentSubject = navigationPath[0];
-
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const res = await fetch(`${API_URL}/api/subjects/${currentSubject.id}/chapters`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ name: chapName })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          // Update nested subjects tree in state
-          const updatedTree = subjects.map(s => {
-            if (s.id === currentSubject.id) {
-              return { ...s, chapters: [...(s.chapters || []), data.chapter] };
-            }
-            return s;
-          });
-          setSubjects(updatedTree);
-          setChapName('');
-          setIsAddingChapter(false);
-          return;
-        }
-      } catch (err) {
-        console.error("Create chapter failed:", err.message);
-      }
-    }
-
-    // Guest Fallback
+    if (!chapName || !currentSubjectNode) return;
     const newChapter = {
-      id: "guest-chap-" + Date.now(),
+      id: "chap-" + Date.now(),
       name: chapName,
       topics: []
     };
-    const updatedTree = subjects.map(s => {
-      if (s.id === currentSubject.id) {
+    const updated = subjects.map(s => {
+      if (s.id === currentSubjectNode.id) {
         return { ...s, chapters: [...(s.chapters || []), newChapter] };
       }
       return s;
     });
-    saveLocalTree(updatedTree);
+    saveLocalTree(updated);
     setChapName('');
     setIsAddingChapter(false);
+    if (onShowToast) onShowToast('Chapter added', 'success');
   };
 
   // CREATE TOPIC
-  const handleCreateTopic = async (e) => {
+  const handleCreateTopic = (e) => {
     e.preventDefault();
-    if (!topName) return;
-    const currentSubject = navigationPath[0];
-    const currentChapter = navigationPath[1];
-
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const res = await fetch(`${API_URL}/api/subjects/chapters/${currentChapter.id}/topics`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ name: topName })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          const updatedTree = subjects.map(s => {
-            if (s.id === currentSubject.id) {
-              const updatedChaps = s.chapters.map(c => {
-                if (c.id === currentChapter.id) {
-                  return { ...c, topics: [...(c.topics || []), data.topic] };
-                }
-                return c;
-              });
-              return { ...s, chapters: updatedChaps };
-            }
-            return s;
-          });
-          setSubjects(updatedTree);
-          setTopName('');
-          setIsAddingTopic(false);
-          return;
-        }
-      } catch (err) {
-        console.error("Create topic failed:", err.message);
-      }
-    }
-
-    // Guest Fallback
+    if (!topName || !currentSubjectNode || !currentChapterNode) return;
     const newTopic = {
-      id: "guest-top-" + Date.now(),
+      id: "top-" + Date.now(),
       name: topName,
       materials: []
     };
-    const updatedTree = subjects.map(s => {
-      if (s.id === currentSubject.id) {
-        const updatedChaps = s.chapters.map(c => {
-          if (c.id === currentChapter.id) {
+    const updated = subjects.map(s => {
+      if (s.id === currentSubjectNode.id) {
+        const updatedChapters = (s.chapters || []).map(c => {
+          if (c.id === currentChapterNode.id) {
             return { ...c, topics: [...(c.topics || []), newTopic] };
           }
           return c;
         });
-        return { ...s, chapters: updatedChaps };
+        return { ...s, chapters: updatedChapters };
       }
       return s;
     });
-    saveLocalTree(updatedTree);
+    saveLocalTree(updated);
     setTopName('');
     setIsAddingTopic(false);
+    if (onShowToast) onShowToast('Topic added', 'success');
   };
 
-  // UPLOAD/CREATE MATERIAL
-  const handleCreateMaterial = async (e) => {
-    e.preventDefault();
-    if (!matName) return;
-    const currentSubject = navigationPath[0];
-    const currentChapter = navigationPath[1];
-    const currentTopic = navigationPath[2];
-
-    const payload = {
-      name: matName,
-      type: matType,
-      content: matType === 'note' ? matContent : null,
-      fileSize: matType !== 'note' ? matSize : `${Math.round(matContent.length / 100) / 10} KB`
-    };
-
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const res = await fetch(`${API_URL}/api/subjects/topics/${currentTopic.id}/materials`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          const updatedTree = subjects.map(s => {
-            if (s.id === currentSubject.id) {
-              const updatedChaps = s.chapters.map(c => {
-                if (c.id === currentChapter.id) {
-                  const updatedTops = c.topics.map(t => {
-                    if (t.id === currentTopic.id) {
-                      return { ...t, materials: [...(t.materials || []), data.material] };
-                    }
-                    return t;
-                  });
-                  return { ...c, topics: updatedTops };
-                }
-                return c;
-              });
-              return { ...s, chapters: updatedChaps };
-            }
-            return s;
-          });
-          setSubjects(updatedTree);
-          resetMaterialForm();
-          return;
-        }
-      } catch (err) {
-        console.error("Create material failed:", err.message);
+  // Refine notes button simulation
+  const handleRefineNotes = (action) => {
+    setNotesRefinementStatus(action);
+    setTimeout(() => {
+      if (action === 'concise' && activeMaterial) {
+        activeMaterial.content = "Summary: " + activeMaterial.content.split('\n')[0] + "\n\nKey Takeaway: Gradients calculate parameter updates efficiently.";
       }
-    }
-
-    // Guest Fallback
-    const newMaterial = {
-      id: "guest-mat-" + Date.now(),
-      ...payload
-    };
-    const updatedTree = subjects.map(s => {
-      if (s.id === currentSubject.id) {
-        const updatedChaps = s.chapters.map(c => {
-          if (c.id === currentChapter.id) {
-            const updatedTops = c.topics.map(t => {
-              if (t.id === currentTopic.id) {
-                return { ...t, materials: [...(t.materials || []), newMaterial] };
-              }
-              return t;
-            });
-            return { ...c, topics: updatedTops };
-          }
-          return c;
-        });
-        return { ...s, chapters: updatedChaps };
-      }
-      return s;
-    });
-    saveLocalTree(updatedTree);
-    resetMaterialForm();
-  };
-
-  const resetMaterialForm = () => {
-    setMatName('');
-    setMatType('note');
-    setMatContent('');
-    setMatSize('1.5 MB');
-    setIsAddingMaterial(false);
+      setNotesRefinementStatus('');
+      if (onShowToast) onShowToast('Notes refined successfully', 'success');
+    }, 800);
   };
 
   // Nav Helpers
@@ -410,7 +327,6 @@ export default function SubjectExplorer({ currentUser }) {
     setNavigationPath(navigationPath.slice(0, -1));
   };
 
-  // Resolve Active Nodes based on browsing route path
   const currentSubjectNode = navigationPath.length > 0 ? subjects.find(s => s.id === navigationPath[0].id) : null;
   const currentChapterNode = navigationPath.length > 1 && currentSubjectNode 
     ? (currentSubjectNode.chapters || []).find(c => c.id === navigationPath[1].id) 
@@ -420,68 +336,74 @@ export default function SubjectExplorer({ currentUser }) {
     : null;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative pb-10">
+    <div className="space-y-6">
       
-      {/* LEFT SIDEBAR: Subjects Menu (Width: 3 Columns) */}
-      <div className="lg:col-span-3 flex flex-col gap-5">
-        <div className="glass-panel p-5 rounded-3xl">
-          <div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-900">
-            <h4 className="text-xs text-slate-400 font-bold uppercase tracking-widest">My Courses</h4>
-            <button 
-              onClick={() => setIsAddingSubject(true)}
-              className="p-1 rounded-lg bg-blue-950/60 border border-blue-900/30 text-blue-400 hover:text-white transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-          </div>
+      {/* TOP PINNED DRAG & DROP UPLOAD ZONE */}
+      <div 
+        onDragEnter={handleDrag}
+        onDragOver={handleDrag}
+        onDragLeave={handleDrag}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all shadow-soft ${
+          dragActive 
+            ? 'border-violet bg-paper-deep' 
+            : 'border-rule bg-card hover:border-violet/60 hover:bg-paper-deep/60'
+        }`}
+      >
+        <input 
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && processUploadedFile(e.target.files[0])}
+          accept=".mp3,.mp4,.pdf,.txt,.md"
+        />
 
-          <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-            {subjects.map(s => (
-              <button 
-                key={s.id}
-                onClick={() => setNavigationPath([{ type: 'subject', id: s.id, name: s.name }])}
-                className={`w-full flex items-center justify-between p-3.5 rounded-2xl border text-left transition-all ${
-                  navigationPath[0]?.id === s.id 
-                    ? 'bg-blue-950/40 border-blue-500/30 text-white' 
-                    : 'bg-slate-900/30 border-slate-900 text-slate-400 hover:border-slate-800'
-                }`}
-              >
-                <div className="min-w-0">
-                  <span className="font-bold text-xs truncate block">{s.name}</span>
-                  <span className="text-[10px] text-slate-500 block mt-0.5 truncate">{s.description || 'No description'}</span>
-                </div>
-                <BookOpen className="w-4 h-4 text-blue-400 shrink-0 ml-2" />
-              </button>
-            ))}
-
-            {subjects.length === 0 && (
-              <div className="text-center py-6">
-                <p className="text-slate-500 text-xs">No subjects created yet.</p>
-              </div>
-            )}
+        {!uploadProcessing ? (
+          <div className="flex flex-col items-center justify-center gap-1.5">
+            <div className="p-3 rounded-full bg-paper-deep text-charcoal border border-rule/70 mb-1">
+              <UploadCloud className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold text-charcoal">
+              Drop lecture recording, textbook PDF, or class notes here
+            </span>
+            <span className="text-[11px] text-charcoal-soft">
+              Supports MP3, MP4, PDF, and Markdown up to 250 MB
+            </span>
           </div>
-        </div>
+        ) : (
+          <div className="max-w-md mx-auto space-y-2 py-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-charcoal font-bold">{uploadStage}</span>
+              <span className="font-mono text-violet font-bold tabular-nums">{uploadProgress}%</span>
+            </div>
+            <div className="w-full bg-paper-deep h-2 rounded-full overflow-hidden border border-rule/70">
+              <div 
+                className="bg-violet h-full rounded-full transition-all duration-150"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* MAIN PANEL: Navigation & Folders browser (Width: 9 Columns) */}
-      <div className="lg:col-span-9 flex flex-col gap-6">
-        
-        {/* Nav breadcrumb path */}
-        <div className="glass-panel py-3 px-5 rounded-2xl flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+      {/* CONTROLS HEADER ROW */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Breadcrumb path */}
+        <div className="flex items-center gap-2 text-xs text-charcoal-soft overflow-x-auto">
           <button 
             onClick={() => setNavigationPath([])}
-            className="hover:text-white font-bold transition-colors"
+            className={`font-bold hover:text-coral transition-colors ${navigationPath.length === 0 ? 'text-charcoal font-display text-sm underline decoration-rule decoration-2 underline-offset-4' : 'text-charcoal-soft'}`}
           >
-            Subjects
+            All Courses
           </button>
-
           {navigationPath.map((item, idx) => (
             <React.Fragment key={idx}>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-650" />
-              <button 
+              <ChevronRight className="w-3.5 h-3.5 text-charcoal-soft shrink-0" />
+              <button
                 onClick={() => navigateTo(item, idx + 1)}
-                className={`hover:text-white font-semibold transition-colors truncate max-w-[150px] ${
-                  idx === navigationPath.length - 1 ? 'text-blue-400 font-bold' : ''
+                className={`truncate max-w-[140px] font-semibold hover:text-coral transition-colors ${
+                  idx === navigationPath.length - 1 ? 'text-charcoal font-bold' : 'text-charcoal-soft'
                 }`}
               >
                 {item.name}
@@ -490,582 +412,581 @@ export default function SubjectExplorer({ currentUser }) {
           ))}
         </div>
 
-        {/* Dynamic Folder Grid View */}
-        <div className="glass-panel p-6.5 rounded-3xl min-h-[380px] flex flex-col justify-between">
-          
-          {/* FOLDER CONTENTS */}
-          <div>
-            {/* View 1: Main Subjects Grid (Root Path) */}
-            {navigationPath.length === 0 && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">Subject Folders</h3>
-                    <p className="text-slate-500 text-xs">Select a course subject folder to browse material.</p>
-                  </div>
-                  <button 
-                    onClick={() => setIsAddingSubject(true)}
-                    className="flex items-center gap-1 text-xs font-bold text-blue-400 bg-blue-950/20 border border-blue-900/30 px-3.5 py-1.5 rounded-xl hover:text-white transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    New Subject
-                  </button>
-                </div>
+        {/* View Toggle & Action Buttons */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex bg-paper-deep p-1 rounded-full border border-rule">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid' ? 'bg-card text-charcoal shadow-soft border border-rule/60' : 'text-charcoal-soft hover:text-charcoal'}`}
+              aria-label="Grid view"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded-full transition-colors ${viewMode === 'list' ? 'bg-card text-charcoal shadow-soft border border-rule/60' : 'text-charcoal-soft hover:text-charcoal'}`}
+              aria-label="List view"
+            >
+              <List className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {subjects.map(s => (
-                    <div 
+          {navigationPath.length === 0 && (
+            <button
+              onClick={() => setIsAddingSubject(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-charcoal hover:bg-coral text-paper text-xs font-bold shadow-soft transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" /> New Course
+            </button>
+          )}
+
+          {navigationPath.length === 1 && (
+            <button
+              onClick={() => setIsAddingChapter(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-charcoal hover:bg-coral text-paper text-xs font-bold shadow-soft transition-all"
+            >
+              <FolderPlus className="w-3.5 h-3.5" /> Add Chapter
+            </button>
+          )}
+
+          {navigationPath.length === 2 && (
+            <button
+              onClick={() => setIsAddingTopic(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-charcoal hover:bg-coral text-paper text-xs font-bold shadow-soft transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Topic
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* DIRECTORY BROWSER CONTENTS */}
+      <div className="bg-card border border-card-border rounded-lg p-6 sm:p-7 shadow-soft min-h-[380px]">
+        
+        {/* ROOT: Subjects List / Grid */}
+        {navigationPath.length === 0 && (
+          <div>
+            <div className="mb-6">
+              <h3 className="text-lg font-bold font-display text-charcoal">Course Subjects</h3>
+              <p className="text-xs text-charcoal-soft">Select a course to view chapters, lecture notes, and concept graphs.</p>
+            </div>
+
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {subjects.map((s, sIdx) => {
+                  const stripeClass = sIdx % 4 === 0 ? 'metric-stripe-violet' :
+                                      sIdx % 4 === 1 ? 'metric-stripe-coral' :
+                                      sIdx % 4 === 2 ? 'metric-stripe-teal' : 'metric-stripe-gold';
+                  const iconColor = sIdx % 4 === 0 ? 'text-violet' :
+                                    sIdx % 4 === 1 ? 'text-coral' :
+                                    sIdx % 4 === 2 ? 'text-teal' : 'text-[#9A7412]';
+                  return (
+                    <div
                       key={s.id}
                       onClick={() => setNavigationPath([{ type: 'subject', id: s.id, name: s.name }])}
-                      className="group cursor-pointer rounded-2xl border border-slate-900 p-5 bg-slate-900/10 hover:border-slate-800 transition-all flex flex-col justify-between min-h-[140px] relative overflow-hidden"
+                      className={`p-5 rounded-md border border-card-border bg-card hover:border-rule hover:shadow-hover transition-all cursor-pointer flex flex-col justify-between min-h-[145px] dog-ear-container group ${stripeClass}`}
                     >
-                      <div className={`absolute -right-6 -bottom-6 w-20 h-20 bg-gradient-to-br ${s.color} opacity-5 filter blur-xl rounded-full`}></div>
+                      {/* Tactile Dog-Ear Corner Bookmark */}
+                      <div 
+                        className="dog-ear-corner"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onShowToast) onShowToast(`Bookmarked "${s.name}" for spaced recall`, 'success');
+                        }}
+                        title="Fold corner / save for review"
+                      />
+
                       <div>
                         <div className="flex justify-between items-start mb-3">
-                          <Folder className="w-8 h-8 text-blue-400" />
-                          <FolderOpen className="w-4 h-4 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <Folder className={`w-6 h-6 ${iconColor}`} />
+                          <span className="text-[10px] uppercase font-mono text-charcoal-soft font-bold">Course</span>
                         </div>
-                        <h4 className="font-bold text-sm text-white group-hover:text-blue-400 transition-colors leading-tight mb-1">
-                          {s.name}
-                        </h4>
-                        <p className="text-slate-500 text-xs leading-relaxed line-clamp-2">
-                          {s.description || 'No description added yet.'}
-                        </p>
+                        <h4 className="text-xs font-bold text-charcoal mb-1 leading-snug">{s.name}</h4>
+                        <p className="text-xs text-charcoal-soft line-clamp-2 leading-relaxed">{s.description}</p>
                       </div>
-                      
-                      {/* Tag capsules */}
+
                       {s.tags && (
-                        <div className="flex flex-wrap gap-1 mt-4">
+                        <div className="flex flex-wrap gap-1.5 mt-4 pt-2 border-t border-rule/60">
                           {s.tags.split(',').map((t, idx) => (
-                            <span key={idx} className="text-[9px] font-bold uppercase bg-slate-950 border border-slate-800 text-slate-500 px-1.5 py-0.5 rounded">
+                            <span key={idx} className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-paper-deep border border-rule/50 text-charcoal-soft font-semibold">
                               {t.trim()}
                             </span>
                           ))}
                         </div>
                       )}
                     </div>
-                  ))}
-
-                  {subjects.length === 0 && (
-                    <div className="col-span-full text-center py-20">
-                      <Folder className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-                      <p className="text-slate-400 text-sm font-semibold">Your Subject Manager is Empty</p>
-                      <p className="text-slate-500 text-xs mt-1">Create your first subject folder to begin organizing.</p>
-                    </div>
-                  )}
+                  );
+                })}
+              </div>
+            ) : (
+              /* Compact Table / List View */
+              <div className="divide-y divide-rule border border-rule rounded-md overflow-hidden bg-card">
+                <div className="grid grid-cols-12 px-4 py-2.5 bg-paper-deep text-[11px] font-bold text-charcoal-soft uppercase font-mono">
+                  <div className="col-span-6">Course Subject</div>
+                  <div className="col-span-4">Tags</div>
+                  <div className="col-span-2 text-right">Action</div>
                 </div>
+                {subjects.map(s => (
+                  <div
+                    key={s.id}
+                    onClick={() => setNavigationPath([{ type: 'subject', id: s.id, name: s.name }])}
+                    className="grid grid-cols-12 px-4 py-3.5 items-center hover:bg-paper-deep/50 cursor-pointer text-xs transition-colors"
+                  >
+                    <div className="col-span-6 flex items-center gap-2.5 min-w-0">
+                      <Folder className="w-4 h-4 text-violet shrink-0" />
+                      <span className="font-bold text-charcoal truncate">{s.name}</span>
+                    </div>
+                    <div className="col-span-4 text-charcoal-soft truncate">{s.tags || 'General'}</div>
+                    <div className="col-span-2 text-right text-charcoal font-bold hover:text-coral transition-colors">Open →</div>
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* View 2: Chapters List (Selected Subject Path) */}
-            {navigationPath.length === 1 && currentSubjectNode && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">{currentSubjectNode.name}</h3>
-                    <p className="text-slate-500 text-xs">Browse course chapters and curriculum sections.</p>
-                  </div>
-                  <button 
-                    onClick={() => setIsAddingChapter(true)}
-                    className="flex items-center gap-1 text-xs font-bold text-blue-400 bg-blue-950/20 border border-blue-900/30 px-3.5 py-1.5 rounded-xl hover:text-white transition-colors"
-                  >
-                    <FolderPlus className="w-4 h-4" />
-                    Add Chapter
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {(currentSubjectNode.chapters || []).map(c => (
-                    <div 
-                      key={c.id}
-                      onClick={() => setNavigationPath([
-                        navigationPath[0],
-                        { type: 'chapter', id: c.id, name: c.name }
-                      ])}
-                      className="group cursor-pointer rounded-2xl border border-slate-900 p-4.5 bg-slate-900/10 hover:border-slate-800 transition-all flex items-center gap-4.5"
-                    >
-                      <Folder className="w-10 h-10 text-indigo-400 shrink-0" />
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-sm text-slate-200 group-hover:text-blue-400 transition-colors leading-tight mb-1 truncate">
-                          {c.name}
-                        </h4>
-                        <span className="text-[10px] text-slate-500 font-bold block uppercase">
-                          {(c.topics || []).length} Topics Inside
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-
-                  {(!currentSubjectNode.chapters || currentSubjectNode.chapters.length === 0) && (
-                    <div className="col-span-full text-center py-20">
-                      <Folder className="w-10 h-10 text-slate-700 mx-auto mb-4" />
-                      <p className="text-slate-400 text-sm font-semibold">No Chapters Created</p>
-                      <p className="text-slate-500 text-xs mt-1">Add folders representing syllabus chapters (e.g. Chapter 1: Foundations).</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* View 3: Topics List (Selected Chapter Path) */}
-            {navigationPath.length === 2 && currentChapterNode && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">{currentChapterNode.name}</h3>
-                    <p className="text-slate-500 text-xs">Browse study topics and concepts details.</p>
-                  </div>
-                  <button 
-                    onClick={() => setIsAddingTopic(true)}
-                    className="flex items-center gap-1 text-xs font-bold text-blue-400 bg-blue-950/20 border border-blue-900/30 px-3.5 py-1.5 rounded-xl hover:text-white transition-colors"
-                  >
-                    <FolderPlus className="w-4 h-4" />
-                    Add Topic
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {(currentChapterNode.topics || []).map(t => (
-                    <div 
-                      key={t.id}
-                      onClick={() => setNavigationPath([
-                        navigationPath[0],
-                        navigationPath[1],
-                        { type: 'topic', id: t.id, name: t.name }
-                      ])}
-                      className="group cursor-pointer rounded-2xl border border-slate-900 p-4.5 bg-slate-900/10 hover:border-slate-800 transition-all flex items-center gap-4.5"
-                    >
-                      <FolderOpen className="w-10 h-10 text-cyan-400 shrink-0" />
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-sm text-slate-200 group-hover:text-blue-400 transition-colors leading-tight mb-1 truncate">
-                          {t.name}
-                        </h4>
-                        <span className="text-[10px] text-slate-500 font-bold block uppercase">
-                          {(t.materials || []).length} Study Packs
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-
-                  {(!currentChapterNode.topics || currentChapterNode.topics.length === 0) && (
-                    <div className="col-span-full text-center py-20">
-                      <FolderOpen className="w-10 h-10 text-slate-700 mx-auto mb-4" />
-                      <p className="text-slate-400 text-sm font-semibold">No Topics Created</p>
-                      <p className="text-slate-500 text-xs mt-1">Create concept folder nodes inside this chapter (e.g. Backpropagation rule).</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* View 4: Materials List (Selected Topic Path) */}
-            {navigationPath.length === 3 && currentTopicNode && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">{currentTopicNode.name}</h3>
-                    <p className="text-slate-500 text-xs">Review study notes and uploaded PDF/PPT documents.</p>
-                  </div>
-                  <button 
-                    onClick={() => setIsAddingMaterial(true)}
-                    className="flex items-center gap-1 text-xs font-bold text-blue-400 bg-blue-950/20 border border-blue-900/30 px-3.5 py-1.5 rounded-xl hover:text-white transition-colors"
-                  >
-                    <UploadCloud className="w-4 h-4" />
-                    Upload / Add Notes
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {(currentTopicNode.materials || []).map(mat => (
-                    <div 
-                      key={mat.id}
-                      className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/20 border border-slate-900 hover:border-slate-800 transition-colors"
-                    >
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        {/* File icons based on type */}
-                        {mat.type === 'note' && <FileText className="w-9 h-9 text-blue-400 shrink-0" />}
-                        {mat.type === 'pdf' && <FileCode className="w-9 h-9 text-rose-500 shrink-0" />}
-                        {mat.type === 'ppt' && <FileCode className="w-9 h-9 text-orange-400 shrink-0" />}
-                        {mat.type === 'image' && <ImageIcon className="w-9 h-9 text-emerald-400 shrink-0" />}
-
-                        <div className="min-w-0">
-                          <h4 className="font-bold text-sm text-slate-200 truncate">{mat.name}</h4>
-                          <span className="text-[10px] text-slate-500 font-bold block uppercase mt-0.5">
-                            {mat.type} &bull; {mat.fileSize || 'Unknown Size'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        {/* View Button */}
-                        <button 
-                          onClick={() => setActiveMaterial(mat)}
-                          className="p-1.5 rounded-lg bg-slate-950/60 border border-slate-850 text-slate-450 hover:text-white hover:bg-slate-900 transition-all flex items-center justify-center"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  {(!currentTopicNode.materials || currentTopicNode.materials.length === 0) && (
-                    <div className="text-center py-20 border border-dashed border-slate-900 rounded-3xl">
-                      <UploadCloud className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-                      <p className="text-slate-400 text-sm font-semibold">Study folder is Empty</p>
-                      <p className="text-slate-500 text-xs mt-1">Upload lecture notes, PDFs, PPTs, or write summary summaries.</p>
-                    </div>
-                  )}
-                </div>
+            {subjects.length === 0 && (
+              <div className="text-center py-16">
+                <Folder className="w-10 h-10 text-charcoal-soft mx-auto mb-2 opacity-50" />
+                <p className="text-xs text-charcoal-soft">Nothing here yet. Upload your first lecture and LectureMind will build your knowledge base.</p>
               </div>
             )}
           </div>
+        )}
 
-          {/* BACK NAVIGATION */}
-          {navigationPath.length > 0 && (
-            <div className="mt-8 pt-4 border-t border-slate-900">
-              <button 
-                onClick={navigateBack}
-                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Back to previous folder
-              </button>
+        {/* LEVEL 1: Chapters */}
+        {navigationPath.length === 1 && currentSubjectNode && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-lg font-bold font-display text-charcoal">{currentSubjectNode.name}</h3>
+                <p className="text-xs text-charcoal-soft">Chapters and syllabus sections.</p>
+              </div>
             </div>
-          )}
-        </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {(currentSubjectNode.chapters || []).map(c => (
+                <div
+                  key={c.id}
+                  onClick={() => setNavigationPath([...navigationPath, { type: 'chapter', id: c.id, name: c.name }])}
+                  className="p-4 rounded-md border border-card-border bg-card hover:border-rule shadow-soft transition-all cursor-pointer flex items-center gap-3"
+                >
+                  <FolderOpen className="w-6 h-6 text-violet shrink-0" />
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-bold text-charcoal truncate">{c.name}</h4>
+                    <span className="text-[10px] text-charcoal-soft font-mono">{(c.topics || []).length} Topics</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {(!currentSubjectNode.chapters || currentSubjectNode.chapters.length === 0) && (
+              <p className="text-center py-12 text-xs text-charcoal-soft">No chapters created in this course yet.</p>
+            )}
+          </div>
+        )}
+
+        {/* LEVEL 2: Topics */}
+        {navigationPath.length === 2 && currentChapterNode && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-lg font-bold font-display text-charcoal">{currentChapterNode.name}</h3>
+                <p className="text-xs text-charcoal-soft">Concept folders and lecture recordings.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {(currentChapterNode.topics || []).map(t => (
+                <div
+                  key={t.id}
+                  onClick={() => setNavigationPath([...navigationPath, { type: 'topic', id: t.id, name: t.name }])}
+                  className="p-4 rounded-md border border-card-border bg-card hover:border-rule shadow-soft transition-all cursor-pointer flex items-center gap-3"
+                >
+                  <BookOpen className="w-6 h-6 text-teal shrink-0" />
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-bold text-charcoal truncate">{t.name}</h4>
+                    <span className="text-[10px] text-charcoal-soft font-mono">{(t.materials || []).length} Structured Notes</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* LEVEL 3: Materials & Reader */}
+        {navigationPath.length === 3 && currentTopicNode && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-lg font-bold font-display text-charcoal">{currentTopicNode.name}</h3>
+                <p className="text-xs text-charcoal-soft">Study notes, transcripts, and concept mappings.</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {(currentTopicNode.materials || []).map(mat => (
+                <div
+                  key={mat.id}
+                  className="p-4 rounded-md border border-card-border bg-card flex items-center justify-between gap-3 hover:border-rule shadow-soft"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileText className="w-5 h-5 text-violet shrink-0" />
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-charcoal truncate">{mat.name}</h4>
+                      <span className="text-[10px] text-charcoal-soft uppercase font-mono">{mat.type} · {mat.fileSize}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveMaterial(mat)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-paper-deep hover:bg-rule/60 text-xs font-bold text-charcoal transition-colors shrink-0 border border-rule/60"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Read Notes & Transcript
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Back Navigation Bar */}
+        {navigationPath.length > 0 && (
+          <div className="mt-8 pt-4 border-t border-border-subtle">
+            <button
+              onClick={navigateBack}
+              className="inline-flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to previous level
+            </button>
+          </div>
+        )}
+
       </div>
 
-      {/* MODAL 1: Add Subject */}
-      {isAddingSubject && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={resetSubjectForm}></div>
-          <div className="relative w-full max-w-md bg-slate-950 border border-slate-900 p-8 rounded-3xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold text-white mb-6">Create Course Subject</h3>
-            <form onSubmit={handleCreateSubject} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-400">Subject Name</label>
-                <input 
-                  type="text" 
-                  required
-                  value={subjName}
-                  onChange={(e) => setSubjName(e.target.value)}
-                  placeholder="e.g. Advanced AI & Deep Learning"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-850 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-400">Description</label>
-                <textarea 
-                  value={subjDesc}
-                  onChange={(e) => setSubjDesc(e.target.value)}
-                  placeholder="A short description of course coverage..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-850 text-sm text-slate-200 focus:outline-none focus:border-blue-500 h-20 resize-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-400">Tags (comma-separated)</label>
-                <div className="relative">
-                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input 
-                    type="text" 
-                    value={subjTags}
-                    onChange={(e) => setSubjTags(e.target.value)}
-                    placeholder="AI, Calculus, Midterm"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-850 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              {/* Accent Color Palette Selection */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-400">Subject Folder Color</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {colorGradients.map((g, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setSubjColor(g.value)}
-                      className={`p-2.5 rounded-xl border text-left text-xs font-semibold flex items-center gap-2 transition-all ${
-                        subjColor === g.value 
-                          ? 'border-blue-500 bg-blue-950/20 text-white' 
-                          : 'border-slate-900 bg-slate-900/30 text-slate-400'
-                      }`}
-                    >
-                      <div className={`w-3.5 h-3.5 rounded-full bg-gradient-to-br ${g.value}`}></div>
-                      {g.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6 pt-4 border-t border-slate-900">
-                <button 
-                  type="submit"
-                  className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 transition-colors"
-                >
-                  Create Folder
-                </button>
-                <button 
-                  type="button" 
-                  onClick={resetSubjectForm}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-400 bg-slate-900 hover:bg-slate-850 transition-colors border border-slate-850"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 2: Add Chapter */}
-      {isAddingChapter && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsAddingChapter(false)}></div>
-          <div className="relative w-full max-w-sm bg-slate-950 border border-slate-900 p-8 rounded-3xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold text-white mb-6">Add Chapter Folder</h3>
-            <form onSubmit={handleCreateChapter} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-400">Chapter Title</label>
-                <input 
-                  type="text" 
-                  required
-                  value={chapName}
-                  onChange={(e) => setChapName(e.target.value)}
-                  placeholder="e.g. Chapter 2: Convolutional Networks"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-850 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button type="submit" className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-colors">Create</button>
-                <button type="button" onClick={() => setIsAddingChapter(false)} className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-850 text-slate-400 rounded-xl text-xs font-bold transition-colors border border-slate-850">Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 3: Add Topic */}
-      {isAddingTopic && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsAddingTopic(false)}></div>
-          <div className="relative w-full max-w-sm bg-slate-950 border border-slate-900 p-8 rounded-3xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold text-white mb-6">Add Topic Folder</h3>
-            <form onSubmit={handleCreateTopic} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-400">Topic Title</label>
-                <input 
-                  type="text" 
-                  required
-                  value={topName}
-                  onChange={(e) => setTopName(e.target.value)}
-                  placeholder="e.g. Backpropagation Calculus"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-850 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button type="submit" className="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition-colors">Create</button>
-                <button type="button" onClick={() => setIsAddingTopic(false)} className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-850 text-slate-400 rounded-xl text-xs font-bold transition-colors border border-slate-850">Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 4: Upload / Add Materials */}
-      {isAddingMaterial && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={resetMaterialForm}></div>
-          <div className="relative w-full max-w-lg bg-slate-950 border border-slate-900 p-8 rounded-3xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold text-white mb-5">Upload / Create Study Material</h3>
-            
-            <form onSubmit={handleCreateMaterial} className="space-y-4">
-              
-              {/* Type Switcher */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-400">Material Category</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { value: 'note', name: 'Note' },
-                    { value: 'pdf', name: 'PDF' },
-                    { value: 'ppt', name: 'PPT' },
-                    { value: 'image', name: 'Image' }
-                  ].map((t) => (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => {
-                        setMatType(t.value);
-                        setMatName(t.value === 'note' ? '' : `Document.${t.value}`);
-                      }}
-                      className={`py-2 rounded-xl border text-center text-xs font-semibold transition-all ${
-                        matType === t.value 
-                          ? 'border-blue-500 bg-blue-950/20 text-white' 
-                          : 'border-slate-900 bg-slate-900/30 text-slate-400'
-                      }`}
-                    >
-                      {t.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Title input */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-400">Material Name / Title</label>
-                <input 
-                  type="text" 
-                  required
-                  value={matName}
-                  onChange={(e) => setMatName(e.target.value)}
-                  placeholder={matType === 'note' ? 'e.g. Midterm summary notes' : `e.g. ChapterSlides.${matType}`}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-850 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              {/* Note Content Editor (Only for Text Note type) */}
-              {matType === 'note' ? (
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Compose Study Note Content</label>
-                  <textarea 
-                    required
-                    value={matContent}
-                    onChange={(e) => setMatContent(e.target.value)}
-                    placeholder="Write or paste your summary notes, formulas, or concepts outlines here..."
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-850 text-sm text-slate-200 focus:outline-none focus:border-blue-500 h-36 resize-none"
-                  />
-                </div>
-              ) : (
-                /* File mock inputs (For attachments) */
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-400">File Size Estimate</label>
-                    <input 
-                      type="text" 
-                      value={matSize}
-                      onChange={(e) => setMatSize(e.target.value)}
-                      placeholder="e.g. 2.4 MB"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-850 text-sm text-slate-200 focus:outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col justify-end">
-                    <div className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-850 text-center flex items-center justify-center gap-1.5 text-xs text-blue-400 font-semibold border-dashed cursor-pointer hover:bg-slate-900 transition-colors">
-                      <UploadCloud className="w-4 h-4" />
-                      Mock Attach File
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-3 mt-6 pt-4 border-t border-slate-900">
-                <button type="submit" className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-colors">
-                  {matType === 'note' ? 'Save Note' : 'Simulate Upload'}
-                </button>
-                <button type="button" onClick={resetMaterialForm} className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-850 text-slate-400 rounded-xl text-xs font-bold transition-colors border border-slate-850">Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 5: Material Detail Viewer (Reading Modal) */}
+      {/* READER MODAL: Timestamp-synced transcript + Notes + Concept Map */}
       {activeMaterial && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setActiveMaterial(null)}></div>
-          <div className="relative w-full max-w-2xl bg-slate-950 border border-slate-900 p-8 rounded-3xl animate-in zoom-in-95 duration-200 max-h-[80vh] flex flex-col justify-between overflow-hidden">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-[#2A2730]/40 backdrop-blur-sm" onClick={() => setActiveMaterial(null)} />
+          
+          <div className="relative w-full max-w-4xl max-h-[90vh] bg-card border border-card-border rounded-xl shadow-modal flex flex-col overflow-hidden z-10">
             
-            <div>
-              <div className="flex items-center justify-between pb-3 border-b border-slate-900 mb-5">
-                <div className="min-w-0">
-                  <h3 className="text-lg font-bold text-white truncate pr-6">{activeMaterial.name}</h3>
-                  <span className="text-[10px] text-slate-500 font-bold block uppercase mt-0.5">
-                    Category: {activeMaterial.type} &bull; {activeMaterial.fileSize || '1.5 MB'}
-                  </span>
+            {/* Reader Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-rule bg-paper-deep/60">
+              <div className="flex items-center gap-3">
+                <FileText className="w-5 h-5 text-violet" />
+                <div>
+                  <h4 className="text-sm font-bold font-display text-charcoal truncate max-w-md">{activeMaterial.name}</h4>
+                  <div className="flex items-center gap-2 text-[10px]">
+                    <span className="px-2.5 py-0.5 rounded-full bg-teal-soft text-teal font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Grounded in your lecture
+                    </span>
+                  </div>
                 </div>
-                <button 
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleRefineNotes('concise')}
+                  disabled={notesRefinementStatus !== ''}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-full border border-rule bg-card hover:bg-paper-deep text-charcoal transition-colors"
+                >
+                  {notesRefinementStatus === 'concise' ? 'Refining…' : 'Make concise'}
+                </button>
+                <button
+                  onClick={() => handleRefineNotes('expand')}
+                  disabled={notesRefinementStatus !== ''}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-full border border-rule bg-card hover:bg-paper-deep text-charcoal transition-colors"
+                >
+                  {notesRefinementStatus === 'expand' ? 'Expanding…' : 'Expand with examples'}
+                </button>
+                <button
                   onClick={() => setActiveMaterial(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
+                  className="p-1.5 rounded-full text-charcoal-soft hover:text-charcoal hover:bg-paper-deep transition-colors ml-2"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
+            </div>
 
-              {/* Viewer Content with Text Selection Annotator */}
-              <div 
-                onMouseUp={(e) => {
-                  const selection = window.getSelection();
-                  const text = selection ? selection.toString().trim() : '';
-                  if (text.length > 3) {
-                    setSelectedText(text);
-                  }
-                }}
-                className="overflow-y-auto max-h-[45vh] pr-2 text-sm text-slate-350 leading-relaxed font-normal relative"
-              >
-                {selectedText && (
-                  <div className="mb-4 p-3 rounded-2xl bg-studio-purple/20 border border-studio-purple flex items-center justify-between gap-3 animate-in fade-in duration-200">
-                    <span className="text-xs text-white font-mono truncate max-w-xs italic">
-                      "{selectedText.substring(0, 50)}..."
-                    </span>
-                    <button
-                      onClick={async () => {
-                        const token = localStorage.getItem('token');
-                        if (!token) return alert("Please log in to generate flashcards.");
-                        try {
-                          await fetch(`${API_URL}/api/flashcards/generate`, {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                              title: `Annotated: ${activeMaterial.name}`,
-                              text: selectedText
-                            })
-                          });
-                          alert("⚡ 1-Click Flashcard Set generated successfully!");
-                          setSelectedText('');
-                        } catch (err) {
-                          console.error(err);
-                        }
-                      }}
-                      className="px-3 py-1.5 rounded-xl bg-studio-purple text-white text-xs font-bold hover:bg-studio-purpleHover flex items-center gap-1 shrink-0"
-                    >
-                      ⚡ 1-Click Flashcard
-                    </button>
-                  </div>
-                )}
+            {/* Reader Body Grid */}
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-y-auto divide-y md:divide-y-0 md:divide-x divide-rule">
+              
+              {/* Left Notes Body (7 cols) with AI Ink border & Highlighters */}
+              <div className="md:col-span-7 p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-charcoal uppercase tracking-wider block font-mono">
+                    Structured Notes
+                  </span>
+                  <span className="font-handwriting text-sm text-charcoal-soft">
+                    inked from audio recording
+                  </span>
+                </div>
 
-                {activeMaterial.type === 'note' ? (
-                  <p className="whitespace-pre-line bg-slate-900/30 border border-slate-900 p-5 rounded-2xl select-text">
-                    {activeMaterial.content || 'This note contains no body text.'}
+                {/* Main Note Box with AI pen border */}
+                <div className="ink-border-ai text-xs text-charcoal leading-relaxed whitespace-pre-wrap font-sans bg-paper-deep p-4 rounded-md border border-rule space-y-2">
+                  <p>
+                    <span className="highlighter-mint font-bold">Backpropagation</span> applies the mathematical Chain Rule to compute partial derivatives of the objective Loss with respect to every weight in a deep neural network.
                   </p>
-                ) : (
-                  <div className="text-center py-10">
-                    <AlertCircle className="w-12 h-12 text-blue-400 mx-auto mb-4" />
-                    <p className="font-bold text-white mb-1">Attached {activeMaterial.type.toUpperCase()} Document</p>
-                    <p className="text-slate-500 text-xs px-6 max-w-sm mx-auto leading-relaxed">
-                      This represents an uploaded {activeMaterial.type.toUpperCase()} file ({activeMaterial.fileSize || '2.4 MB'}). During production, this asset launches in an embedded document viewer or opens a local download link.
-                    </p>
+                  <div className="font-mono text-[11px] p-2.5 bg-card rounded border border-rule text-violet font-bold">
+                    ∂L/∂w_i = (∂L/∂a) * (∂a/∂z) * (∂z/∂w_i)
+                  </div>
+                  <p>
+                    Signals propagate backwards starting from output predictions down to shallow layers. Activation functions like <span className="highlighter-yellow font-bold">ReLU</span> keep gradient signals steady (derivative = 1 for positive inputs), preventing <span className="wavy-flag font-bold">vanishing gradient</span> decay.
+                  </p>
+                </div>
+
+                {/* MARGIN AI: Expandable marginalia notes */}
+                <div className="p-4 rounded-lg bg-card border border-violet/30 shadow-soft space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-violet flex items-center gap-1.5 font-mono">
+                      <Sparkles className="w-3.5 h-3.5" /> Margin AI Annotation
+                    </span>
+                    <span className="font-handwriting text-xs text-violet font-bold">
+                      tap to review
+                    </span>
+                  </div>
+                  <p className="text-xs text-charcoal-soft leading-relaxed">
+                    "Notice that when hidden layers grow past 10+ layers, non-linearities with derivatives &lt; 1 cause exponential decay: 0.25¹⁰ ≈ 9.5 × 10⁻⁷."
+                  </p>
+                </div>
+
+                {/* Living Concept Map Nodes (Outline Pencil vs Solid Inked) */}
+                {activeMaterial.concepts && (
+                  <div className="pt-4 border-t border-rule space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-charcoal">Living Concept Nodes</span>
+                        <span className="font-handwriting text-xs text-charcoal-soft">
+                          (dashed = sketched in pencil, solid = inked)
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={conceptMapFilter}
+                          onChange={(e) => setConceptMapFilter(e.target.value)}
+                          placeholder="Filter nodes…"
+                          className="px-2.5 py-1 bg-paper-deep border border-rule rounded-md text-[11px] text-charcoal w-32 focus-ring"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {activeMaterial.concepts
+                        .filter(c => c.name.toLowerCase().includes(conceptMapFilter.toLowerCase()))
+                        .map(c => {
+                          const isInked = c.mastery >= 75;
+                          return (
+                            <button
+                              key={c.id}
+                              onClick={() => setSelectedConceptNode(c)}
+                              className={`px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 transition-all shadow-soft ${
+                                isInked
+                                  ? 'bg-card border-2 border-violet text-charcoal font-bold'
+                                  : 'bg-card border-2 border-dashed border-rule text-charcoal-soft font-medium'
+                              }`}
+                            >
+                              <Brain className={`w-3.5 h-3.5 ${isInked ? 'text-violet' : 'text-charcoal-soft'}`} />
+                              <span>{c.name}</span>
+                              <span className={`text-[10px] font-mono font-bold ${isInked ? 'text-violet' : 'text-charcoal-soft'}`}>
+                                ({c.mastery}%)
+                              </span>
+                            </button>
+                          );
+                        })}
+                    </div>
                   </div>
                 )}
               </div>
+
+              {/* Right Timestamp-Synced Transcript (5 cols) */}
+              <div className="md:col-span-5 p-6 bg-paper-deep/40 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-charcoal flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-violet" /> Synced Transcript
+                  </span>
+                  <span className="font-handwriting text-xs text-charcoal-soft">
+                    click timestamp to seek audio
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                  {(activeMaterial.transcript || []).map((t, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setHighlightedTimestamp(t.time)}
+                      className={`p-3 rounded-md border transition-colors cursor-pointer text-xs ${
+                        highlightedTimestamp === t.time
+                          ? 'bg-card border-coral text-charcoal shadow-soft'
+                          : 'bg-card border-rule text-charcoal hover:bg-paper-deep'
+                      }`}
+                    >
+                      <span className="font-mono text-[10px] font-bold text-violet block mb-0.5">
+                        [{t.time}]
+                      </span>
+                      <p className="leading-snug">{t.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </div>
 
-            <div className="mt-8 pt-4 border-t border-slate-900 text-right">
-              <button 
-                onClick={() => {
-                  setActiveMaterial(null);
-                  setSelectedText('');
-                }}
-                className="px-5 py-2 bg-slate-900 hover:bg-slate-850 border border-slate-850 text-slate-300 font-bold rounded-xl text-xs transition-all"
-              >
-                Close Viewer
-              </button>
-            </div>
+            {/* Concept Side Sheet if selected */}
+            {selectedConceptNode && (
+              <div className="p-4 border-t border-rule bg-card flex items-center justify-between gap-4">
+                <div>
+                  <span className="text-xs font-bold text-charcoal block">{selectedConceptNode.name}</span>
+                  <p className="text-xs text-charcoal-soft">{selectedConceptNode.definition}</p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-xs font-mono font-bold text-violet tabular-nums bg-violet-soft px-2.5 py-1 rounded-full">
+                    {selectedConceptNode.mastery}% Mastery
+                  </span>
+                  <button
+                    onClick={() => {
+                      setActiveMaterial(null);
+                      window.location.hash = '#/dashboard/flashcards';
+                    }}
+                    className="px-4 py-1.5 rounded-full bg-charcoal hover:bg-coral text-paper text-xs font-bold transition-colors shadow-soft"
+                  >
+                    Practice in Review
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* CREATE SUBJECT MODAL */}
+      {isAddingSubject && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-[#2A2730]/25 backdrop-blur-sm" onClick={() => setIsAddingSubject(false)} />
+          <div className="relative w-full max-w-md bg-surface border border-border-subtle rounded-md p-6 shadow-modal z-10 space-y-4">
+            <h3 className="text-base font-bold text-text-primary">Create Course Subject</h3>
+            <form onSubmit={handleCreateSubject} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-text-primary mb-1">Course Name</label>
+                <input
+                  type="text"
+                  required
+                  value={subjName}
+                  onChange={(e) => setSubjName(e.target.value)}
+                  placeholder="e.g. Distributed Systems & OS"
+                  className="w-full px-3 py-2 bg-bg-subtle border border-border-subtle rounded-sm text-xs text-text-primary focus-ring"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-text-primary mb-1">Description</label>
+                <textarea
+                  value={subjDesc}
+                  onChange={(e) => setSubjDesc(e.target.value)}
+                  placeholder="Short summary of course topics…"
+                  className="w-full px-3 py-2 bg-bg-subtle border border-border-subtle rounded-sm text-xs text-text-primary focus-ring h-16 resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-text-primary mb-1">Tags (comma-separated)</label>
+                <input
+                  type="text"
+                  value={subjTags}
+                  onChange={(e) => setSubjTags(e.target.value)}
+                  placeholder="CS, Concurrency, Exams"
+                  className="w-full px-3 py-2 bg-bg-subtle border border-border-subtle rounded-sm text-xs text-text-primary focus-ring"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-3 border-t border-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingSubject(false)}
+                  className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-accent-primary text-white rounded-sm text-xs font-semibold hover:bg-accent-hover shadow-soft"
+                >
+                  Create Subject
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE CHAPTER MODAL */}
+      {isAddingChapter && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-[#2A2730]/25 backdrop-blur-sm" onClick={() => setIsAddingChapter(false)} />
+          <div className="relative w-full max-w-md bg-surface border border-border-subtle rounded-md p-6 shadow-modal z-10 space-y-4">
+            <h3 className="text-base font-bold text-text-primary">Add Syllabus Chapter</h3>
+            <form onSubmit={handleCreateChapter} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-text-primary mb-1">Chapter Title</label>
+                <input
+                  type="text"
+                  required
+                  value={chapName}
+                  onChange={(e) => setChapName(e.target.value)}
+                  placeholder="e.g. Chapter 2: Concurrency & Synchronization"
+                  className="w-full px-3 py-2 bg-bg-subtle border border-border-subtle rounded-sm text-xs text-text-primary focus-ring"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-3 border-t border-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingChapter(false)}
+                  className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-accent-primary text-white rounded-sm text-xs font-semibold hover:bg-accent-hover shadow-soft"
+                >
+                  Add Chapter
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE TOPIC MODAL */}
+      {isAddingTopic && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-[#2A2730]/25 backdrop-blur-sm" onClick={() => setIsAddingTopic(false)} />
+          <div className="relative w-full max-w-md bg-surface border border-border-subtle rounded-md p-6 shadow-modal z-10 space-y-4">
+            <h3 className="text-base font-bold text-text-primary">Add Topic Folder</h3>
+            <form onSubmit={handleCreateTopic} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-text-primary mb-1">Topic Name</label>
+                <input
+                  type="text"
+                  required
+                  value={topName}
+                  onChange={(e) => setTopName(e.target.value)}
+                  placeholder="e.g. Mutexes, Semaphores & Deadlocks"
+                  className="w-full px-3 py-2 bg-bg-subtle border border-border-subtle rounded-sm text-xs text-text-primary focus-ring"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-3 border-t border-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingTopic(false)}
+                  className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-accent-primary text-white rounded-sm text-xs font-semibold hover:bg-accent-hover shadow-soft"
+                >
+                  Add Topic
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
