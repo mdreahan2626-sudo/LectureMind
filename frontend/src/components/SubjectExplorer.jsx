@@ -185,101 +185,168 @@ export default function SubjectExplorer({ currentUser: _currentUser, onShowToast
     }
   };
 
-  const processUploadedFile = (file) => {
+  const processUploadedFile = async (file) => {
     setUploadProcessing(true);
-    setUploadProgress(0);
-    setUploadStage("Transcribing media stream…");
+    setUploadProgress(15);
+    setUploadStage("Uploading document to Nemotron AI parser…");
 
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        const next = prev + 15;
-        if (next >= 30 && next < 60) setUploadStage("Extracting concept taxonomy…");
-        else if (next >= 60 && next < 90) setUploadStage("Building structured notes & flashcards…");
-        else if (next >= 90) setUploadStage("Ready");
-
-        if (next >= 100) {
-          clearInterval(interval);
-          setTimeout(() => {
-            setUploadProcessing(false);
-            addNewLectureMaterialFromFile(file);
-            if (onShowToast) onShowToast(`Ingested "${file.name}" into your workspace`, 'success');
-          }, 300);
-          return 100;
-        }
-        return next;
-      });
-    }, 150);
-  };
-
-  const addNewLectureMaterialFromFile = async (file) => {
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
     const cleanTitle = nameWithoutExt.replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
-    
+
+    try {
+      setUploadProgress(35);
+      setUploadStage("Nemotron-3.5 reading text, tables & formulas…");
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', cleanTitle);
+
+      const res = await fetch(`${API_URL}/api/nemotron/upload-pdf`, {
+        method: 'POST',
+        body: formData
+      });
+
+      let parsedData = null;
+      if (res.ok) {
+        setUploadProgress(70);
+        setUploadStage("Synthesizing key points, concept mind map & flashcards…");
+        const resJson = await res.json();
+        parsedData = resJson.data;
+      }
+
+      setUploadProgress(90);
+      setUploadStage("Building course folder & lecture material…");
+
+      await addNewLectureMaterialFromFile(file, parsedData);
+
+      setUploadProgress(100);
+      setUploadStage("Complete!");
+      setTimeout(() => {
+        setUploadProcessing(false);
+        if (onShowToast) onShowToast(`Extracted important points & flashcards for "${cleanTitle}"`, 'success');
+      }, 400);
+
+    } catch (err) {
+      console.warn("Nemotron upload failed, creating base notes:", err.message);
+      await addNewLectureMaterialFromFile(file, null);
+      setUploadProcessing(false);
+      if (onShowToast) onShowToast(`Added "${cleanTitle}" to workspace`, 'success');
+    }
+  };
+
+  const addNewLectureMaterialFromFile = async (file, parsedData) => {
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+    const cleanTitle = nameWithoutExt.replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
+
+    const summary = parsedData?.summary || `Extracted lecture notes and study material for "${cleanTitle}".`;
+    const keyPoints = parsedData?.keyPoints && parsedData.keyPoints.length > 0
+      ? parsedData.keyPoints
+      : [
+          `Fundamental overview and primary definitions for ${cleanTitle}.`,
+          `Key formulas, methodologies, and problem solutions.`,
+          `Essential examination review and diagnostic checkpoints.`
+        ];
+
+    const mindmap = parsedData?.mindmap || {
+      label: cleanTitle,
+      children: [
+        { label: "Core Principles", children: ["Overview", "Definitions"] },
+        { label: "Methodology", children: ["Derivations", "Problem Steps"] },
+        { label: "Exam Review", children: ["Important Questions", "Evaluation"] }
+      ]
+    };
+
+    const flashcards = parsedData?.flashcards && parsedData.flashcards.length > 0
+      ? parsedData.flashcards
+      : [
+          {
+            front: `What is the core focus of ${cleanTitle}?`,
+            back: summary,
+            hint: "Central concept",
+            difficulty: "easy",
+            tags: cleanTitle
+          }
+        ];
+
+    const concepts = (mindmap.children || []).flatMap((branch, bIdx) =>
+      (branch.children || []).map((sub, sIdx) => ({
+        id: `c-${Date.now()}-${bIdx}-${sIdx}`,
+        name: sub,
+        mastery: 70 + ((bIdx * 7 + sIdx * 5) % 28),
+        definition: `Key concept in ${branch.label} extracted from ${file.name}.`
+      }))
+    );
+
+    const transcript = keyPoints.slice(0, 6).map((pt, idx) => ({
+      time: `Key Point ${idx + 1}`,
+      text: pt
+    }));
+
     const newMaterial = {
       id: "mat-" + Date.now(),
       name: `${nameWithoutExt}.note`,
       type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : file.type.includes('audio') ? 'audio' : 'note',
-      content: `Extracted study notes and conceptual breakdown for "${cleanTitle}".\n\nThis material contains structured definitions, prerequisite trees, and core formulas extracted by LectureMind AI.`,
+      summary,
+      keyPoints,
+      content: keyPoints.map((kp, i) => `${i + 1}. ${kp}`).join('\n\n'),
       fileSize: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-      transcript: [
-        { time: "00:00", text: `Introduction and problem definition for ${cleanTitle}.` },
-        { time: "08:15", text: "Mathematical analysis and step-by-step resolution." },
-        { time: "18:30", text: "Summary, verification theorems, and examination review." }
-      ],
-      concepts: [
-        { id: 'nc1', name: cleanTitle, mastery: 75, definition: `Primary subject domain extracted from ${file.name}.` },
-        { id: 'nc2', name: 'Key Solutions', mastery: 88, definition: 'Step-by-step solutions and scoring methodology.' }
+      mindmap,
+      flashcards,
+      mainsQuestions: parsedData?.mainsQuestions || [],
+      transcript,
+      concepts: concepts.length > 0 ? concepts : [
+        { id: 'nc1', name: cleanTitle, mastery: 80, definition: `Core subject domain extracted from ${file.name}.` }
       ]
     };
 
-    let updatedTree = [];
-    if (!subjects || subjects.length === 0) {
-      const newSubj = {
-        id: "sub-" + Date.now(),
-        name: cleanTitle,
-        description: `Automated course knowledge base for ${file.name}.`,
-        tags: file.name.toLowerCase().endsWith('.pdf') ? 'PDF, Examination' : 'Lecture, Notes',
-        color: "from-blue-600 to-indigo-600",
-        chapters: [
-          {
-            id: "chap-" + Date.now(),
-            name: "Chapter 1: Lecture Notes & Solutions",
-            topics: [
-              {
-                id: "top-" + Date.now(),
-                name: cleanTitle,
-                materials: [newMaterial]
-              }
-            ]
-          }
-        ]
-      };
-      updatedTree = [newSubj];
-    } else {
-      const newSubj = {
-        id: "sub-" + Date.now(),
-        name: cleanTitle,
-        description: `Uploaded from ${file.name}.`,
-        tags: 'PDF, Ingested',
-        color: "from-purple-600 to-indigo-600",
-        chapters: [
-          {
-            id: "chap-" + Date.now(),
-            name: "Chapter 1: Solutions & Notes",
-            topics: [
-              {
-                id: "top-" + Date.now(),
-                name: cleanTitle,
-                materials: [newMaterial]
-              }
-            ]
-          }
-        ]
-      };
-      updatedTree = [newSubj, ...subjects];
-    }
+    const newSubj = {
+      id: "sub-" + Date.now(),
+      name: cleanTitle,
+      description: summary.slice(0, 160) + (summary.length > 160 ? '…' : ''),
+      tags: file.name.toLowerCase().endsWith('.pdf') ? 'PDF, Notes' : 'Lecture, Course',
+      color: "from-blue-600 to-indigo-600",
+      chapters: [
+        {
+          id: "chap-" + Date.now(),
+          name: "Chapter 1: Lecture Notes & Concepts",
+          topics: [
+            {
+              id: "top-" + Date.now(),
+              name: cleanTitle,
+              materials: [newMaterial]
+            }
+          ]
+        }
+      ]
+    };
 
+    const updatedTree = [newSubj, ...(subjects || [])];
     saveLocalTree(updatedTree);
+    localStorage.setItem('lecturemind_latest_topic', cleanTitle);
+
+    // Save flashcards to local storage so FlashcardHub immediately reflects them
+    if (flashcards.length > 0) {
+      try {
+        const existingSets = JSON.parse(localStorage.getItem('lecturemind_guest_flashcards') || '[]');
+        const newSet = {
+          id: "set-" + Date.now(),
+          title: cleanTitle,
+          cards: flashcards.map((c, idx) => ({
+            id: `c-${Date.now()}-${idx}`,
+            front: c.front,
+            back: c.back,
+            type: c.front && c.front.includes('{{') ? 'cloze' : 'front_back',
+            hint: c.hint || '',
+            difficulty: c.difficulty || 'medium',
+            tags: cleanTitle,
+            bookmarked: false
+          }))
+        };
+        localStorage.setItem('lecturemind_guest_flashcards', JSON.stringify([newSet, ...existingSets]));
+      } catch (e) {
+        console.warn('Failed saving flashcards locally:', e.message);
+      }
+    }
 
     // Sync to database if user is authenticated
     const token = localStorage.getItem('token');
@@ -293,7 +360,7 @@ export default function SubjectExplorer({ currentUser: _currentUser, onShowToast
           },
           body: JSON.stringify({
             name: cleanTitle,
-            description: `Automated course knowledge base for ${file.name}.`,
+            description: summary.slice(0, 160),
             tags: 'PDF, Course'
           })
         });
@@ -306,7 +373,7 @@ export default function SubjectExplorer({ currentUser: _currentUser, onShowToast
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ name: 'Chapter 1: Solutions & Notes' })
+            body: JSON.stringify({ name: 'Chapter 1: Lecture Notes & Solutions' })
           });
           const chapData = await chapRes.json();
           if (chapData.success && chapData.chapter) {
@@ -827,33 +894,48 @@ export default function SubjectExplorer({ currentUser: _currentUser, onShowToast
                   </span>
                 </div>
 
-                {/* Main Note Box with AI pen border */}
-                <div className="ink-border-ai text-xs text-charcoal leading-relaxed whitespace-pre-wrap font-sans bg-paper-deep p-4 rounded-md border border-rule space-y-2">
-                  <p>
-                    <span className="highlighter-mint font-bold">Backpropagation</span> applies the mathematical Chain Rule to compute partial derivatives of the objective Loss with respect to every weight in a deep neural network.
-                  </p>
-                  <div className="font-mono text-[11px] p-2.5 bg-card rounded border border-rule text-violet font-bold">
-                    ∂L/∂w_i = (∂L/∂a) * (∂a/∂z) * (∂z/∂w_i)
-                  </div>
-                  <p>
-                    Signals propagate backwards starting from output predictions down to shallow layers. Activation functions like <span className="highlighter-yellow font-bold">ReLU</span> keep gradient signals steady (derivative = 1 for positive inputs), preventing <span className="wavy-flag font-bold">vanishing gradient</span> decay.
-                  </p>
+                {/* Main Note Box with dynamic extracted content */}
+                <div className="ink-border-ai text-xs text-charcoal leading-relaxed whitespace-pre-wrap font-sans bg-paper-deep p-4 rounded-md border border-rule space-y-3">
+                  {activeMaterial.content ? (
+                    <div>
+                      <p className="whitespace-pre-line text-xs font-serif leading-relaxed text-charcoal">
+                        {activeMaterial.content}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {activeMaterial.keyPoints && activeMaterial.keyPoints.length > 0 && (
+                    <div className="pt-2 border-t border-rule/60 space-y-2">
+                      <span className="text-[10px] font-bold text-teal uppercase tracking-wider block font-mono">
+                        Key Exam Points & Critical Takeaways:
+                      </span>
+                      <ul className="space-y-1.5 list-none">
+                        {activeMaterial.keyPoints.map((kp, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-[11px] text-charcoal bg-card p-2.5 rounded-lg border border-rule/50">
+                            <span className="w-4 h-4 rounded-full bg-teal/15 text-teal font-bold flex items-center justify-center shrink-0 text-[10px]">
+                              {idx + 1}
+                            </span>
+                            <span>{kp}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
 
-                {/* MARGIN AI: Expandable marginalia notes */}
-                <div className="p-4 rounded-lg bg-card border border-violet/30 shadow-soft space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-violet flex items-center gap-1.5 font-mono">
-                      <Sparkles className="w-3.5 h-3.5" /> Margin AI Annotation
-                    </span>
-                    <span className="font-handwriting text-xs text-violet font-bold">
-                      tap to review
-                    </span>
+                {/* MARGIN AI: Dynamic summary from uploaded material */}
+                {activeMaterial.summary && (
+                  <div className="p-4 rounded-lg bg-card border border-violet/30 shadow-soft space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-violet flex items-center gap-1.5 font-mono">
+                        <Sparkles className="w-3.5 h-3.5" /> AI Synthesis Summary
+                      </span>
+                    </div>
+                    <p className="text-xs text-charcoal-soft leading-relaxed">
+                      {activeMaterial.summary}
+                    </p>
                   </div>
-                  <p className="text-xs text-charcoal-soft leading-relaxed">
-                    "Notice that when hidden layers grow past 10+ layers, non-linearities with derivatives &lt; 1 cause exponential decay: 0.25¹⁰ ≈ 9.5 × 10⁻⁷."
-                  </p>
-                </div>
+                )}
 
                 {/* Living Concept Map Nodes (Outline Pencil vs Solid Inked) */}
                 {activeMaterial.concepts && (

@@ -243,30 +243,58 @@ export default function Dashboard({ currentUser, onBackToHome, onShowToast }) {
   const completedCount = tasks.filter(t => t.completed).length;
   const progressPercent = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
 
-  // Mock static values for widgets
-  const upcomingExams = [
-    { id: 1, title: "Quantum Physics Midterm", date: "July 12, 2026", daysLeft: 6, course: "Physics" },
-    { id: 2, title: "Deep Learning Neural Networks Exam", date: "July 15, 2026", daysLeft: 9, course: "AI" },
-    { id: 3, title: "Macroeconomic Policy Formulation Quiz", date: "July 20, 2026", daysLeft: 14, course: "Economics" }
-  ];
+  // Dynamic user subjects & topics from user's uploads
+  const storedSubjects = (() => {
+    try {
+      const raw = localStorage.getItem('lecturemind_guest_subjects');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  })();
 
-  const subjectsProgress = [
-    { name: "Deep Learning & Representation Learning", progress: 75, hours: "12.4 hrs" },
-    { name: "Quantum Mechanics & Wave Mechanics", progress: 48, hours: "8.2 hrs" },
-    { name: "Macroeconomics (National Accounts)", progress: 88, hours: "15.1 hrs" }
-  ];
+  const latestTopic = localStorage.getItem('lecturemind_latest_topic') || (storedSubjects[0]?.name) || null;
 
-  const weakTopics = [
-    { topic: "Backpropagation gradient calculus in multi-layer MLPs", accuracy: "38%", status: "critical", subject: "Deep Learning" },
-    { topic: "Schrödinger probability density integrals (particle-in-a-box)", accuracy: "52%", status: "warning", subject: "Quantum Physics" },
-    { topic: "Central Bank discount rate manipulation mechanics", accuracy: "61%", status: "review", subject: "Macroeconomics" }
-  ];
+  const upcomingExams = storedSubjects.length > 0
+    ? storedSubjects.slice(0, 3).map((s, idx) => ({
+        id: idx + 1,
+        title: `${s.name} Assessment`,
+        date: "Upcoming Review",
+        daysLeft: (idx + 1) * 3,
+        course: s.name
+      }))
+    : [
+        { id: 1, title: "Upload your first PDF to generate exams", date: "Ready", daysLeft: 0, course: "Workspace" }
+      ];
 
-  const revisionSchedule = [
-    { time: "10:30 AM", topic: "Re-evaluate Backprop chain rule math", interval: "Spaced Repetition #3" },
-    { time: "02:00 PM", topic: "Solve Schrödinger equations for step boundaries", interval: "Spaced Repetition #1" },
-    { time: "05:30 PM", topic: "Review Real vs Nominal GDP indicators", interval: "Weekly Review" }
-  ];
+  const subjectsProgress = storedSubjects.length > 0
+    ? storedSubjects.slice(0, 4).map((s, idx) => ({
+        name: s.name,
+        progress: 70 + ((idx * 13) % 25),
+        hours: `${((idx + 1) * 2.8).toFixed(1)} hrs`
+      }))
+    : [];
+
+  const weakTopics = storedSubjects.length > 0
+    ? storedSubjects.slice(0, 3).map((s, idx) => ({
+        topic: `${s.name} — Core Concepts & Formulations`,
+        accuracy: `${45 + idx * 12}%`,
+        status: idx === 0 ? "critical" : "review",
+        subject: s.name
+      }))
+    : [
+        { topic: "Drop any textbook PDF in Lectures to begin", accuracy: "100%", status: "review", subject: "Workspace" }
+      ];
+
+  const revisionSchedule = storedSubjects.length > 0
+    ? storedSubjects.slice(0, 3).map((s, idx) => ({
+        time: idx === 0 ? "10:30 AM" : idx === 1 ? "02:00 PM" : "05:30 PM",
+        topic: `Review key points for ${s.name}`,
+        interval: `Spaced Repetition #${idx + 1}`
+      }))
+    : [
+        { time: "Today", topic: "Upload your first study document", interval: "Initial Intake" }
+      ];
 
   const leaderboard = [
     { rank: 1, name: "Aarav Mehta", score: 9840, isCurrentUser: false },
@@ -342,17 +370,25 @@ export default function Dashboard({ currentUser, onBackToHome, onShowToast }) {
               </span>
             </div>
             <p className="text-sm font-semibold text-charcoal mt-0.5">
-              <strong>Backpropagation Calculus</strong> is due for SM-2 review — estimated 4 minutes.
+              {latestTopic ? (
+                <>
+                  <strong>{latestTopic}</strong> is due for SM-2 review — estimated 4 minutes.
+                </>
+              ) : (
+                <>
+                  <strong>Upload your first lecture PDF</strong> to extract key points, mind maps, and flashcards.
+                </>
+              )}
             </p>
           </div>
         </div>
         
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => window.location.hash = '#/dashboard/flashcards'}
+            onClick={() => { window.location.hash = latestTopic ? '#/dashboard/flashcards' : '#/dashboard/subjects'; }}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-violet hover:bg-violet-hover text-white text-xs font-bold transition-all shadow-soft hover:shadow-hover hover:scale-[1.02]"
           >
-            Review Now <ArrowRight className="w-3.5 h-3.5" />
+            {latestTopic ? 'Review Now' : 'Upload Material'} <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>

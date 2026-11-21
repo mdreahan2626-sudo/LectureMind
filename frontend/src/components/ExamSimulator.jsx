@@ -4,8 +4,10 @@ import { API_URL } from '../config';
 
 export default function ExamSimulator({ onShowToast }) {
   const [stage, setStage] = useState('setup'); // 'setup' | 'active' | 'results'
-  const [title, setTitle] = useState('Neural Network Foundations');
-  const [content, setContent] = useState(`Backpropagation calculates the gradient of the loss function with respect to each weight by applying the chain rule backward from the output layer. Non-linear activation functions like ReLU keep gradients constant for positive inputs.`);
+  
+  const savedTopic = localStorage.getItem('lecturemind_latest_topic') || '';
+  const [title, setTitle] = useState(savedTopic || 'My Course Exam');
+  const [content, setContent] = useState('');
   const [timeLimit, setTimeLimit] = useState(10);
   const [loading, setLoading] = useState(false);
   const [quiz, setQuiz] = useState(null);

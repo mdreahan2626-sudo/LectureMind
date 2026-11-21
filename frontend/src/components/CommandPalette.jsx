@@ -7,6 +7,27 @@ export default function CommandPalette({ isOpen, onClose, onNavigate }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef(null);
 
+  const storedSubjects = (() => {
+    try {
+      const raw = localStorage.getItem('lecturemind_guest_subjects');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  })();
+
+  const dynamicConcepts = storedSubjects.length > 0
+    ? storedSubjects.map(s => ({
+        id: `concept-${s.id}`,
+        label: `Course: ${s.name}`,
+        category: 'My Courses',
+        icon: FileText,
+        target: '#/dashboard/subjects'
+      }))
+    : [
+        { id: 'concept-upload', label: 'Upload PDF / Notes', category: 'Upload', icon: FileText, target: '#/dashboard/subjects' }
+      ];
+
   const actions = [
     { id: 'dashboard', label: 'Go to Study Room Console', category: 'Navigation', icon: BookOpen, target: '#/dashboard/metrics' },
     { id: 'lectures', label: 'Browse Course Lectures & Subjects', category: 'Navigation', icon: Layers, target: '#/dashboard/subjects' },
@@ -14,9 +35,7 @@ export default function CommandPalette({ isOpen, onClose, onNavigate }) {
     { id: 'exam', label: 'Start Timed Exam Simulator', category: 'Study Tools', icon: Timer, target: '#/dashboard/exam' },
     { id: 'voice', label: 'Start Voice Socratic Tutor', category: 'AI Tools', icon: Mic, target: '#/dashboard/voice' },
     { id: 'analytics', label: 'View Progress Analytics & Heatmap', category: 'Insights', icon: TrendingUp, target: '#/dashboard/analytics' },
-    { id: 'concept-backprop', label: 'Concept: Backpropagation Calculus', category: 'Concepts', icon: FileText, target: '#/dashboard/subjects' },
-    { id: 'concept-schrodinger', label: 'Concept: Schrödinger Wave Equation', category: 'Concepts', icon: FileText, target: '#/dashboard/subjects' },
-    { id: 'concept-gdp', label: 'Concept: Real vs Nominal GDP', category: 'Concepts', icon: FileText, target: '#/dashboard/subjects' },
+    ...dynamicConcepts
   ];
 
   const filteredActions = actions.filter(action =>

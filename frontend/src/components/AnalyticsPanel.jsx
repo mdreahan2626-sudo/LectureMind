@@ -21,16 +21,28 @@ export default function AnalyticsPanel({ studiedToday, weeklyHours, weeklyGoal }
   const [hoveredNode, setHoveredNode] = useState(null);
   const [selectedSpineDay, setSelectedSpineDay] = useState(null);
 
+  const storedSubjects = (() => {
+    try {
+      const raw = localStorage.getItem('lecturemind_guest_subjects');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  })();
+
   // The Knowledge Spine Data (Sequential Daily Academic Log Entries)
-  const spineEntries = [
-    { day: "Mon", date: "June 29", intensity: "high", hours: 4.5, topic: "Backpropagation Chain Rule Derivations", masteryGain: "+6%" },
-    { day: "Sun", date: "June 28", intensity: "med", hours: 3.2, topic: "Born Probability Density Integrals", masteryGain: "+4%" },
-    { day: "Sat", date: "June 27", intensity: "low", hours: 0.9, topic: "ReLU & Vanishing Gradient Checkpoints", masteryGain: "+2%" },
-    { day: "Fri", date: "June 26", intensity: "med", hours: 2.9, topic: "National Accounts & GDP Deflators", masteryGain: "+5%" },
-    { day: "Thu", date: "June 25", intensity: "low", hours: 1.5, topic: "Quantum Superposition & Wave Packets", masteryGain: "+3%" },
-    { day: "Wed", date: "June 24", intensity: "high", hours: 4.8, topic: "Multi-layer Perceptron Optimization", masteryGain: "+8%" },
-    { day: "Tue", date: "June 23", intensity: "med", hours: 3.1, topic: "Central Bank Monetary Policy Tools", masteryGain: "+4%" },
-  ];
+  const spineEntries = storedSubjects.length > 0
+    ? storedSubjects.map((s, idx) => ({
+        day: ["Mon", "Sun", "Sat", "Fri", "Thu"][idx % 5],
+        date: "Recent Study",
+        intensity: "high",
+        hours: 3.5,
+        topic: s.name,
+        masteryGain: "+7%"
+      }))
+    : [
+        { day: "Today", date: "Active", intensity: "med", hours: 2.0, topic: "Extracted Lecture Review", masteryGain: "+5%" }
+      ];
 
   // Heatmap Data (Last 5 weeks)
   const heatmapData = [
@@ -238,11 +250,11 @@ export default function AnalyticsPanel({ studiedToday, weeklyHours, weeklyGoal }
             {/* Sticky 1 */}
             <div className="sticky-note-coral p-4 rounded-md space-y-2">
               <div className="flex justify-between items-center text-[11px]">
-                <span className="font-mono font-bold text-danger uppercase">Deep Learning · 38%</span>
+                <span className="font-mono font-bold text-danger uppercase">{storedSubjects[0]?.name || 'Uploaded Material'} · 42%</span>
                 <span className="font-handwriting text-xs text-danger">needs drill</span>
               </div>
               <p className="text-xs font-bold text-text-primary leading-snug">
-                Backpropagation gradient calculus in multi-layer MLPs
+                {storedSubjects[0]?.name ? `${storedSubjects[0].name} — Core Concepts & Diagnostic Checks` : 'Upload your first PDF to generate active recall targets'}
               </p>
               <button
                 onClick={() => window.location.hash = '#/dashboard/flashcards'}
@@ -255,11 +267,11 @@ export default function AnalyticsPanel({ studiedToday, weeklyHours, weeklyGoal }
             {/* Sticky 2 */}
             <div className="sticky-note-warm p-4 rounded-md space-y-2">
               <div className="flex justify-between items-center text-[11px]">
-                <span className="font-mono font-bold text-[#977319] uppercase">Quantum Physics · 52%</span>
-                <span className="font-handwriting text-xs text-[#977319]">almost there</span>
+                <span className="font-mono font-bold text-[#977319] uppercase">{storedSubjects[1]?.name || 'Secondary Review'} · 65%</span>
+                <span className="font-handwriting text-xs text-[#977319]">in progress</span>
               </div>
               <p className="text-xs font-bold text-text-primary leading-snug">
-                Schrödinger probability density integrals (particle-in-a-box)
+                {storedSubjects[1]?.name ? `${storedSubjects[1].name} — Concept Hierarchy` : 'Key formulas and step-by-step solutions'}
               </p>
               <button
                 onClick={() => window.location.hash = '#/dashboard/flashcards'}

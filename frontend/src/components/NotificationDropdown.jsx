@@ -29,8 +29,8 @@ export default function NotificationDropdown({ onSelectAction }) {
     {
       id: 3,
       category: 'alert',
-      title: 'Weak-concept alert',
-      description: 'Backpropagation chain rule accuracy dropped below 40%.',
+      title: 'Recall review alert',
+      description: 'Your uploaded lecture material has key concepts ready for spaced repetition review.',
       time: '5h ago',
       unread: false,
       actionTarget: '#/dashboard/metrics'
