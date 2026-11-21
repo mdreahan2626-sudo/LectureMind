@@ -7,6 +7,9 @@ const prisma = require('../../prisma');
 const auth = require('../../middleware/auth');
 const { generateFlashcards } = require('../../utils/ai');
 const rag = require('../../utils/rag');
+const multer = require('multer');
+const upload = multer({ limits: { fileSize: 25 * 1024 * 1024 } });
+const { parseStudyMaterial, extractTextFromPDF } = require('../../utils/nemotron');
 
 const app = express();
 const PORT = process.env.AI_PORT || 5015;
@@ -586,6 +589,54 @@ app.get('/api/ai/quiz/my-quizzes', auth, async (req, res) => {
   } catch (error) {
     console.error('Fetch quizzes error:', error);
     res.status(500).json({ error: 'Server error fetching quizzes.' });
+  }
+});
+
+// 9. Nemotron PDF & Study Material Parsing Engine
+app.post('/api/nemotron/parse-text', async (req, res) => {
+  const { title, text } = req.body;
+  if (!text) {
+    return res.status(400).json({ error: 'Text content is required for Nemotron analysis.' });
+  }
+
+  try {
+    console.log(`[Nemotron] Parsing study text: "${title || 'Untitled'}" (${text.length} chars)`);
+    const parsed = await parseStudyMaterial(text, title || 'Study Notes');
+    res.json({ success: true, data: parsed });
+  } catch (error) {
+    console.error('Nemotron parse-text error:', error);
+    res.status(500).json({ error: 'Failed to parse text with Nemotron AI.' });
+  }
+});
+
+app.post('/api/nemotron/upload-pdf', upload.single('file'), async (req, res) => {
+  try {
+    let extractedText = '';
+    let fileName = req.body.title || 'Uploaded Document';
+
+    if (req.file) {
+      fileName = req.file.originalname || fileName;
+      if (req.file.mimetype === 'application/pdf' || req.file.originalname.toLowerCase().endsWith('.pdf')) {
+        extractedText = await extractTextFromPDF(req.file.buffer);
+      } else {
+        extractedText = req.file.buffer.toString('utf-8');
+      }
+    } else if (req.body.text) {
+      extractedText = req.body.text;
+    } else {
+      return res.status(400).json({ error: 'Please upload a PDF/text file or provide raw text.' });
+    }
+
+    if (!extractedText || extractedText.trim().length === 0) {
+      return res.status(400).json({ error: 'Extracted document text was empty.' });
+    }
+
+    console.log(`[Nemotron] Processing PDF/Doc "${fileName}" (${extractedText.length} extracted characters)...`);
+    const parsed = await parseStudyMaterial(extractedText, fileName);
+    res.json({ success: true, data: parsed });
+  } catch (error) {
+    console.error('Nemotron upload-pdf error:', error);
+    res.status(500).json({ error: error.message || 'Failed to process document with Nemotron.' });
   }
 });
 

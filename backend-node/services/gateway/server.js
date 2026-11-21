@@ -81,6 +81,7 @@ app.use('/api/subjects', proxyTo(SERVICES.SUBJECTS));
 app.use('/api/flashcards/generate', proxyTo(SERVICES.AI));
 app.use('/api/flashcards', proxyTo(SERVICES.FLASHCARDS));
 app.use('/api/ai', proxyTo(SERVICES.AI));
+app.use('/api/nemotron', proxyTo(SERVICES.AI));
 app.use('/api/lectures', proxyTo(SERVICES.AI));
 app.use('/api/chat', proxyTo(SERVICES.AI));
 app.use('/api/rag', proxyTo(SERVICES.AI));

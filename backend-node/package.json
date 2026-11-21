@@ -17,7 +17,9 @@
     "inngest": "^4.11.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.2.2",
+    "multer": "^2.5.0",
     "nodemailer": "^9.0.3",
+    "pdf-parse": "^2.4.5",
     "resend": "^6.17.1"
   },
   "devDependencies": {

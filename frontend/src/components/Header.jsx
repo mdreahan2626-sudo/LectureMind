@@ -86,7 +86,7 @@ export default function Header({
                     Features
                   </a>
                   <a href="#sandbox" className="nav-link-item text-sm">
-                    Interactive Sandbox
+                    PDF & Mind Map Studio
                   </a>
                 </>
               ) : (

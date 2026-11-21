@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FileAudio, 
   FileText, 
@@ -9,46 +9,131 @@ import {
   RefreshCw, 
   BrainCircuit, 
   Layers, 
-  MessageSquare, 
   HelpCircle, 
   FolderUp, 
   ChevronLeft, 
   ChevronRight,
   Lightbulb,
+  Sparkles,
+  Upload,
   BookOpen,
-  Sparkles
+  FileCheck,
+  Award,
+  AlertCircle,
+  Copy,
+  Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { API_URL } from '../config';
 
 const SAMPLE_LECTURES = {
+  document: {
+    title: "Quantum Mechanics & Wave Equations.pdf",
+    type: "document",
+    size: "8.4 MB",
+    summary: "An introduction to non-relativistic Quantum Mechanics, reviewing the transition from classical physics. It covers wave-particle duality, Planck's constant, and the photoelectric effect. The core of the chapter examines the Schrödinger Wave Equation, probability density interpretations, quantum superposition, and Heisenberg's Uncertainty Principle.",
+    keyPoints: [
+      "Wave-Particle Duality: Light and matter exhibit both wave and particle properties (de Broglie wavelength λ = h/p).",
+      "Schrödinger Equation: Governs the spatial and temporal evolution of a quantum state wave function ψ.",
+      "Born Probability Density: The squared magnitude |ψ|² represents the probability of finding a particle at a given point.",
+      "Quantum Superposition: A quantum system remains in a linear combination of states until measured.",
+      "Heisenberg Uncertainty: Δx · Δp ≥ ℏ/2; position and momentum cannot be simultaneously measured with arbitrary precision."
+    ],
+    mindmap: {
+      label: "Quantum Mechanics",
+      children: [
+        {
+          label: "Foundations",
+          children: ["Wave-Particle Duality", "Planck Constant (h)", "Photoelectric Effect"]
+        },
+        {
+          label: "Wave Mechanics",
+          children: ["Schrödinger Equation", "Wave Function (ψ)", "Probability Density (|ψ|²)"]
+        },
+        {
+          label: "Principles",
+          children: ["Superposition", "Uncertainty Principle", "Quantum Tunneling"]
+        }
+      ]
+    },
+    flashcards: [
+      { 
+        front: "What does Planck's constant (h) link in quantum physics?", 
+        back: "It links photon frequency to energy: E = hf.",
+        hint: "Energy-frequency relationship",
+        difficulty: "easy",
+        tags: "Foundations"
+      },
+      { 
+        front: "What does the squared wave function (|ψ|²) represent?", 
+        back: "Max Born's interpretation: the spatial probability density of locating a particle.",
+        hint: "Born rule",
+        difficulty: "medium",
+        tags: "Wave Mechanics"
+      },
+      { 
+        front: "What is the physical meaning of Heisenberg's Uncertainty Principle?", 
+        back: "Position and momentum cannot both be measured with infinite precision at the same time: Δx · Δp ≥ ℏ/2.",
+        hint: "Measurement limits",
+        difficulty: "hard",
+        tags: "Principles"
+      },
+      { 
+        front: "Fill in the blank: In quantum mechanics, {{Superposition}} allows a particle to exist in multiple states simultaneously.", 
+        back: "Superposition",
+        hint: "Linear combination of eigenstates",
+        difficulty: "medium",
+        tags: "Principles"
+      }
+    ],
+    mainsQuestions: [
+      {
+        question: "State the time-dependent Schrödinger wave equation and explain the physical significance of the wave function and probability density.",
+        type: "Descriptive (10 Marks)",
+        difficulty: "Moderate",
+        keyEvaluationPoints: [
+          "Equation representation with Hamiltonian operator",
+          "Significance of wave function ψ",
+          "Born's interpretation of |ψ|²",
+          "Normalization condition"
+        ],
+        modelAnswer: "The Schrödinger wave equation mathematically describes the quantum state of an isolated system. The wave function ψ contains all observable information about the particle. According to Born's interpretation, |ψ|²dV gives the probability of finding the particle in volume dV. For a physically valid state, the integral of |ψ|² over all space must equal 1 (normalization)."
+      },
+      {
+        question: "Critically analyze Heisenberg's Uncertainty Principle and discuss its impact on the classical deterministic worldview of physics.",
+        type: "Analytical (15 Marks)",
+        difficulty: "Advanced",
+        keyEvaluationPoints: [
+          "Mathematical statement (Δx · Δp ≥ ℏ/2)",
+          "Measurement disturbance vs intrinsic quantum indeterminacy",
+          "Breakdown of classical Newtonian determinism",
+          "Zero-point energy consequence"
+        ],
+        modelAnswer: "Heisenberg's Uncertainty Principle imposes a fundamental constraint on simultaneous conjugate variables. Unlike classical mechanics where position and momentum can be precisely tracked, quantum mechanics demonstrates an intrinsic fuzziness. This replaced Laplace's determinism with probabilistic quantum states and explains phenomena like atomic stability and zero-point energy."
+      }
+    ]
+  },
   audio: {
     title: "Deep Learning Foundations (Lecture 4).mp3",
     type: "audio",
     size: "42.8 MB",
-    duration: "54 mins",
-    summary: "This lecture introduces the mathematical foundations of Deep Learning, contrasting traditional machine learning with hierarchical representation learning in multi-layer perceptrons. The instructor details forward propagation, loss calculation, backward propagation of error gradients via the chain rule, and non-linear activation functions (ReLU, Sigmoid, Tanh). Key discussion points include mitigating vanishing gradients and learning rate schedules.",
-    keyTakeaways: [
-      { term: "Deep Learning", desc: "A subset of machine learning using multi-layered artificial neural networks to learn representations from raw data." },
-      { term: "Backpropagation", desc: "The algorithm that calculates partial derivatives of the loss function with respect to weights using the chain rule." },
-      { term: "Activation Function", desc: "Introduces non-linearity, allowing deep networks to approximate complex mathematical decision boundaries." },
-      { term: "Vanishing Gradients", desc: "A training issue where gradient signals shrink exponentially in early layers, stalling parameter updates." }
-    ],
-    flashcards: [
-      { front: "What is ReLU and its mathematical formula?", back: "Rectified Linear Unit: f(x) = max(0, x). It returns 0 for negative values and passes positive values unchanged." },
-      { front: "Why are non-linear activation functions necessary in multi-layer networks?", back: "Without non-linear activations, multiple linear layers collapse into a single matrix multiplication, unable to learn non-linear boundaries." },
-      { front: "What role does an optimizer play during network training?", back: "It updates model weights and biases based on calculated gradients to minimize the objective loss function (e.g. Adam, SGD)." },
-      { front: "What is overfitting and how can it be mitigated?", back: "When a model memorizes training noise instead of general patterns. Addressed via dropout, L1/L2 regularization, and early stopping." }
+    summary: "This lecture introduces the mathematical foundations of Deep Learning, contrasting traditional machine learning with hierarchical representation learning in multi-layer perceptrons. The instructor details forward propagation, loss calculation, backward propagation of error gradients via the chain rule, and non-linear activation functions.",
+    keyPoints: [
+      "Representation Learning: Deep networks learn hierarchical features directly from raw high-dimensional inputs.",
+      "Backpropagation: Calculates gradients of the loss with respect to weights using the recursive chain rule.",
+      "Activation Functions: ReLU, Sigmoid, and GELU inject non-linearity to prevent collapsing into a single linear map.",
+      "Optimization: Gradient descent variants (Adam, RMSProp) iteratively adjust parameters toward global loss minima."
     ],
     mindmap: {
       label: "Deep Learning",
       children: [
         {
-          label: "Architecture",
-          children: ["Input Features", "Hidden Layers", "Output Neurons"]
+          label: "Network Architecture",
+          children: ["Input Layer", "Hidden Layers", "Output Layer"]
         },
         {
           label: "Optimization",
-          children: ["Loss Metric", "Chain Rule Gradients", "Adam Optimizer"]
+          children: ["Loss Function", "Chain Rule Gradients", "Adam Optimizer"]
         },
         {
           label: "Activations",
@@ -56,647 +141,695 @@ const SAMPLE_LECTURES = {
         }
       ]
     },
-    suggestedQuestions: [
-      "Why does ReLU prevent vanishing gradients?",
-      "How does backpropagation calculate weights?",
-      "What is the difference between ML and Deep Learning?"
-    ]
-  },
-  document: {
-    title: "Quantum Mechanics & Wave Equations.pdf",
-    type: "document",
-    size: "8.4 MB",
-    duration: "45 pages",
-    summary: "An introduction to non-relativistic Quantum Mechanics, reviewing the transition from classical physics. It covers wave-particle duality, Planck's constant, and the photoelectric effect. The core of the chapter examines the Schrödinger Wave Equation, probability density interpretations, quantum superposition, and Heisenberg's Uncertainty Principle.",
-    keyTakeaways: [
-      { term: "Wave-Particle Duality", desc: "The principle that quantum entities exhibit both wave-like and particle-like characteristics depending on observation." },
-      { term: "Schrödinger Equation", desc: "The differential equation governing the spatial and temporal evolution of a quantum state wave function." },
-      { term: "Quantum Superposition", desc: "The principle that a physical system exists as a linear combination of all valid states until measured." },
-      { term: "Uncertainty Principle", desc: "Heisenberg's theorem stating position and momentum cannot both be measured with arbitrary precision simultaneously." }
-    ],
     flashcards: [
-      { front: "What does Planck's constant (h) link?", back: "It links photon frequency to energy: E = hf." },
-      { front: "What does the squared wave function (|ψ|²) represent?", back: "Max Born's interpretation: the spatial probability density of locating a particle." },
-      { front: "What is Quantum Tunneling?", back: "The phenomenon where a quantum particle penetrates a potential energy barrier higher than its kinetic energy." }
+      { front: "What is ReLU and its mathematical formula?", back: "Rectified Linear Unit: f(x) = max(0, x).", hint: "Linear for positive, zero for negative", difficulty: "easy", tags: "Activations" },
+      { front: "Why are non-linear activations essential?", back: "Without non-linearity, stacked layers collapse into a single linear matrix multiplication.", hint: "Matrix collapse", difficulty: "medium", tags: "Architecture" },
+      { front: "What is the core role of Backpropagation?", back: "Computing partial derivatives of the loss function with respect to every weight.", hint: "Chain rule application", difficulty: "hard", tags: "Optimization" }
     ],
-    mindmap: {
-      label: "Quantum Mechanics",
-      children: [
-        {
-          label: "Principles",
-          children: ["Wave Duality", "Superposition", "Tunneling"]
-        },
-        {
-          label: "Schrödinger Eq",
-          children: ["Time-Dependent", "Wave Function (ψ)", "Probability Density"]
-        },
-        {
-          label: "Uncertainty",
-          children: ["Position & Momentum", "Planck Constant (h)", "Measurement Collapse"]
-        }
-      ]
-    },
-    suggestedQuestions: [
-      "What does the wave function collapse mean?",
-      "How does quantum tunneling occur?",
-      "What is the Born interpretation of |ψ|²?"
-    ]
-  },
-  video: {
-    title: "Macroeconomic Policy & Indicators.mp4",
-    type: "video",
-    size: "184.2 MB",
-    duration: "1 hr 15 mins",
-    summary: "A university seminar examining national macroeconomic indicators and state intervention. Key topics include Gross Domestic Product (GDP), inflation measurements (Consumer Price Index), and labor statistics. The discussion contrasts fiscal policy managed by government expenditure with monetary policy executed by central banks via interest rates and reserve requirements.",
-    keyTakeaways: [
-      { term: "Macroeconomics", desc: "The study of aggregate economic performance, inflation rates, national output, and public fiscal structures." },
-      { term: "Gross Domestic Product (GDP)", desc: "The total market value of all finished goods and services produced within a country's borders in a given time period." },
-      { term: "Fiscal Policy", desc: "Government revenue collection (taxation) and expenditure (spending) used to influence aggregate demand." },
-      { term: "Monetary Policy", desc: "Central bank management of the money supply and lending interest rates to maintain price stability." }
-    ],
-    flashcards: [
-      { front: "What is the difference between real and nominal GDP?", back: "Nominal GDP is evaluated at current prices, while Real GDP is adjusted for price changes using a base-year deflator." },
-      { front: "How does inflation affect currency purchasing power?", back: "Inflation erodes the purchasing power of money, requiring more currency units to acquire identical baskets of goods." },
-      { front: "What are the primary tools of Monetary Policy?", back: "Open market operations, reserve ratio adjustments, and policy discount interest rates." }
-    ],
-    mindmap: {
-      label: "Macroeconomics",
-      children: [
-        {
-          label: "Indicators",
-          children: ["Real/Nominal GDP", "Consumer Price Index", "Unemployment Rate"]
-        },
-        {
-          label: "Policy Frameworks",
-          children: ["Fiscal (Taxes/Spend)", "Monetary (Interest)", "Central Bank Actions"]
-        },
-        {
-          label: "Market Forces",
-          children: ["Aggregate Demand", "Inflation Pressures", "Business Cycles"]
-        }
-      ]
-    },
-    suggestedQuestions: [
-      "How does real GDP differ from nominal GDP?",
-      "What tools do central banks use for monetary policy?",
-      "Why does inflation reduce purchasing power?"
+    mainsQuestions: [
+      {
+        question: "Explain the mathematical formulation of backpropagation using the chain rule of calculus for a two-layer neural network.",
+        type: "Analytical (15 Marks)",
+        difficulty: "Advanced",
+        keyEvaluationPoints: ["Forward pass computation", "Error propagation backward", "Weight update equations", "Vanishing gradient discussion"],
+        modelAnswer: "Backpropagation computes ∂L/∂W by applying the chain rule backward from the loss L. For layer l, error δ^l = (W^{l+1})^T δ^{l+1} ⊙ σ'(z^l). The weight update is ΔW^l = -η δ^l (a^{l-1})^T."
+      }
     ]
   }
 };
 
 export default function InteractiveSandbox() {
-  const [selectedType, setSelectedType] = useState('audio');
+  const [inputMode, setInputMode] = useState('upload'); // 'upload' | 'paste' | 'sample'
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [pastedText, setPastedText] = useState('');
+  const [documentTitle, setDocumentTitle] = useState('');
+  const [sampleType, setSampleType] = useState('document');
+
+  // Processing state
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [stageIndex, setStageIndex] = useState(0);
+  const [statusMessage, setStatusMessage] = useState('');
   const [isDone, setIsDone] = useState(false);
-  const [activeTab, setActiveTab] = useState('summary');
+  const [activeTab, setActiveTab] = useState('points'); // 'points' | 'mindmap' | 'flashcards' | 'mains'
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Extracted Data
+  const [extractedData, setExtractedData] = useState(SAMPLE_LECTURES.document);
 
   // Flashcards state
   const [currentCardIdx, setCurrentCardIdx] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [masteredCards, setMasteredCards] = useState({});
+  const [copiedAnswerIdx, setCopiedAnswerIdx] = useState(null);
 
-  // Chat simulator state
-  const [messages, setMessages] = useState([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const fileInputRef = useRef(null);
 
-  const activeLecture = SAMPLE_LECTURES[selectedType];
-
-  const stages = [
-    { label: "Transcribing audio & OCR parsing…", pct: 25 },
-    { label: "Extracting concepts & terminology hierarchy…", pct: 55 },
-    { label: "Building structured notes & flashcard deck…", pct: 85 },
-    { label: "Ready", pct: 100 }
-  ];
-
-  const handleStartProcessing = () => {
-    setIsProcessing(true);
-    setProgress(0);
-    setStageIndex(0);
-    setIsDone(false);
-    setActiveTab('summary');
-    setMessages([
-      { 
-        sender: 'ai', 
-        text: `I've finished processing "${activeLecture.title}". What concept would you like to review or explore further?`,
-        citations: ["04:15", "18:42"]
-      }
-    ]);
-    setCurrentCardIdx(0);
-    setIsFlipped(false);
-    setMasteredCards({});
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setDocumentTitle(file.name.replace(/\.[^/.]+$/, ''));
+      setErrorMsg('');
+    }
   };
 
-  useEffect(() => {
-    if (!isProcessing) return;
-
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev + 2;
-        if (next < 30) setStageIndex(0);
-        else if (next < 65) setStageIndex(1);
-        else if (next < 95) setStageIndex(2);
-        else setStageIndex(3);
-
-        if (next >= 100) {
-          clearInterval(interval);
-          setTimeout(() => {
-            setIsProcessing(false);
-            setIsDone(true);
-            confetti({
-              particleCount: 50,
-              spread: 60,
-              origin: { y: 0.6 },
-              colors: ['#8C7CF0', '#7FCBAE', '#F4CE6B']
-            });
-          }, 300);
-          return 100;
-        }
-        return next;
-      });
-    }, 45);
-
-    return () => clearInterval(interval);
-  }, [isProcessing]);
-
-  const handleSendMessage = (e) => {
+  const handleDrop = (e) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setDocumentTitle(file.name.replace(/\.[^/.]+$/, ''));
+      setErrorMsg('');
+    }
+  };
 
-    const query = inputValue;
-    setMessages(prev => [...prev, { sender: 'user', text: query }]);
-    setInputValue('');
-    setIsTyping(true);
+  const handleStartParsing = async () => {
+    setErrorMsg('');
+    setIsProcessing(true);
+    setProgress(15);
+    setStatusMessage('Reading and extracting document contents…');
 
-    setTimeout(() => {
-      let reply = "Here is what the lecture covers regarding that: ";
-      let citations = ["12:30"];
-      const q = query.toLowerCase();
+    try {
+      let resultData = null;
 
-      if (q.includes('relu') || q.includes('activation')) {
-        reply = "ReLU (Rectified Linear Unit) outputs max(0, x). By keeping the gradient at 1 for all positive inputs, it prevents gradient signals from vanishing across deep network layers.";
-        citations = ["14:20", "22:15"];
-      } else if (q.includes('backprop') || q.includes('gradient')) {
-        reply = "Backpropagation calculates partial derivatives of the loss function with respect to every weight using the chain rule, moving sequentially backward from the output layer.";
-        citations = ["08:45", "19:10"];
-      } else if (q.includes('quantum') || q.includes('schrodinger') || q.includes('wave')) {
-        reply = "The Schrödinger equation determines the evolution of a wave function (ψ). The square |ψ|² yields the probability density of locating the particle in a region.";
-        citations = ["06:12", "31:40"];
-      } else if (q.includes('gdp') || q.includes('fiscal') || q.includes('monetary')) {
-        reply = "Fiscal policy involves government taxation and spending. Monetary policy is handled by central banks via interest rates and reserve requirements to regulate price inflation.";
-        citations = ["10:15", "45:00"];
+      if (inputMode === 'upload' && selectedFile) {
+        setProgress(35);
+        setStatusMessage('Sending to Nemotron-3.5 NIM for layout & taxonomy parsing…');
+        
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('title', documentTitle || selectedFile.name);
+
+        const response = await fetch(`${API_URL}/api/nemotron/upload-pdf`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || 'Failed to parse uploaded document.');
+        }
+
+        const resJson = await response.json();
+        resultData = resJson.data;
+
+      } else if (inputMode === 'paste' && pastedText.trim()) {
+        setProgress(35);
+        setStatusMessage('Nemotron-3.5 Bolt analyzing concepts, taxonomy, and questions…');
+
+        const response = await fetch(`${API_URL}/api/nemotron/parse-text`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: documentTitle || 'Pasted Study Notes',
+            text: pastedText
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || 'Failed to process pasted notes.');
+        }
+
+        const resJson = await response.json();
+        resultData = resJson.data;
+
       } else {
-        reply = `Based on your lecture notes, this concept is directly linked to the core principles outlined in the summary.`;
+        // Sample Mode
+        setProgress(50);
+        setStatusMessage('Loading curated sample lecture dataset…');
+        await new Promise(r => setTimeout(r, 600));
+        resultData = SAMPLE_LECTURES[sampleType] || SAMPLE_LECTURES.document;
       }
 
-      setMessages(prev => [...prev, { sender: 'ai', text: reply, citations }]);
-      setIsTyping(false);
-    }, 900);
+      setProgress(85);
+      setStatusMessage('Synthesizing mind map branches, key points, and flashcard deck…');
+      await new Promise(r => setTimeout(r, 400));
+
+      setProgress(100);
+      setStatusMessage('Done! Structured knowledge package ready.');
+      setExtractedData(resultData);
+      setIsDone(true);
+      setCurrentCardIdx(0);
+      setIsFlipped(false);
+      setActiveTab('points');
+
+      confetti({
+        particleCount: 50,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#8C7CF0', '#7FCBAE', '#F4CE6B', '#F38181']
+      });
+
+    } catch (err) {
+      console.error('Parsing failed:', err);
+      setErrorMsg(err.message || 'Error occurred while parsing with Nemotron AI.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
+  const copyToClipboard = (text, idx) => {
+    navigator.clipboard.writeText(text);
+    setCopiedAnswerIdx(idx);
+    setTimeout(() => setCopiedAnswerIdx(null), 2000);
+  };
+
+  const flashcards = extractedData?.flashcards || [];
+  const keyPoints = extractedData?.keyPoints || [];
+  const mindmap = extractedData?.mindmap || { label: 'Study Topic', children: [] };
+  const mainsQuestions = extractedData?.mainsQuestions || [];
 
   return (
-    <section id="sandbox" className="py-20 bg-bg-subtle/60 border-t border-border-subtle relative z-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="sandbox" className="py-14 px-4 bg-paper relative overflow-hidden border-t border-b border-rule">
+      <div className="max-w-7xl mx-auto">
         
-        {/* Section Heading */}
-        <div className="max-w-2xl mx-auto text-center mb-14">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface border border-border-subtle text-xs font-semibold text-accent-primary mb-3 shadow-soft">
-            <Sparkles className="w-3.5 h-3.5" />
-            Interactive Workspace Sandbox
+        {/* Section Header */}
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-paper-deep border border-rule text-xs font-semibold text-charcoal mb-3 shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-violet" />
+            <span>Powered by NVIDIA Nemotron-3.5 AI</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold font-display text-text-primary tracking-tight mb-3">
-            See how LectureMind builds structured knowledge
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal tracking-tight mb-2">
+            Upload PDF & Extract Knowledge Instantly
           </h2>
-          <p className="text-sm text-text-secondary leading-relaxed">
-            Select a sample lecture file to simulate transcription, concept extraction, spaced flashcard generation, and grounded Q&A.
+          <p className="text-xs sm:text-sm text-charcoal-soft leading-relaxed font-sans">
+            Drop your lecture PDF or notes. Nemotron automatically distills all crucial points, maps out concept hierarchies, generates SM-2 flashcards, and drafts Mains questions.
           </p>
         </div>
 
-        {/* Sandbox Console Container */}
+        {/* Studio Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           
-          {/* Left: Input Selection Column (4 cols) */}
-          <div className="lg:col-span-4 bg-surface border border-border-subtle rounded-md p-6 flex flex-col justify-between shadow-soft">
+          {/* LEFT COLUMN: SIMPLE INPUT & UPLOAD (5 cols) */}
+          <div className="lg:col-span-5 bg-card border border-rule rounded-xl p-5 sm:p-6 shadow-soft flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between pb-3 border-b border-border-subtle mb-4">
-                <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">
-                  1. Choose Sample Source
-                </span>
-                <span className="text-[11px] text-text-muted">Sample data</span>
+              
+              {/* Mode Toggle Tabs */}
+              <div className="flex items-center gap-1 p-1 bg-paper-deep rounded-lg border border-rule mb-5">
+                <button
+                  onClick={() => setInputMode('upload')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold rounded-md transition-all ${
+                    inputMode === 'upload' 
+                      ? 'bg-card text-charcoal shadow-xs border border-rule/50' 
+                      : 'text-charcoal-soft hover:text-charcoal'
+                  }`}
+                >
+                  <Upload className="w-3.5 h-3.5 text-violet" />
+                  Upload PDF
+                </button>
+                <button
+                  onClick={() => setInputMode('paste')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold rounded-md transition-all ${
+                    inputMode === 'paste' 
+                      ? 'bg-card text-charcoal shadow-xs border border-rule/50' 
+                      : 'text-charcoal-soft hover:text-charcoal'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5 text-coral" />
+                  Paste Text
+                </button>
+                <button
+                  onClick={() => setInputMode('sample')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold rounded-md transition-all ${
+                    inputMode === 'sample' 
+                      ? 'bg-card text-charcoal shadow-xs border border-rule/50' 
+                      : 'text-charcoal-soft hover:text-charcoal'
+                  }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-teal" />
+                  Sample
+                </button>
               </div>
 
-              {/* Selector Buttons */}
-              <div className="space-y-2.5">
-                {[
-                  { id: 'audio', title: 'Deep Learning.mp3', subtitle: 'Audio lecture · 54 mins', icon: FileAudio },
-                  { id: 'document', title: 'Quantum Mechanics.pdf', subtitle: 'Textbook chapter · 45 pages', icon: FileText },
-                  { id: 'video', title: 'Macroeconomics.mp4', subtitle: 'Seminar recording · 1h 15m', icon: Video },
-                ].map((item) => {
-                  const isSelected = selectedType === item.id;
-                  const Icon = item.icon;
-                  return (
+              {/* MODE 1: FILE UPLOAD */}
+              {inputMode === 'upload' && (
+                <div className="space-y-4">
+                  <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+                      selectedFile 
+                        ? 'border-violet/60 bg-violet/5' 
+                        : 'border-rule hover:border-violet/40 hover:bg-paper-deep/60'
+                    }`}
+                  >
+                    <input 
+                      ref={fileInputRef} 
+                      type="file" 
+                      accept=".pdf,.txt,.md" 
+                      onChange={handleFileChange} 
+                      className="hidden" 
+                    />
+                    
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-paper-deep border border-rule flex items-center justify-center text-violet shadow-xs">
+                      {selectedFile ? <FileCheck className="w-6 h-6 text-teal" /> : <FolderUp className="w-6 h-6" />}
+                    </div>
+
+                    {selectedFile ? (
+                      <div>
+                        <span className="text-xs font-bold text-charcoal block truncate max-w-xs mx-auto">
+                          {selectedFile.name}
+                        </span>
+                        <span className="text-[11px] text-charcoal-soft font-mono mt-1 block">
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB · Click to change file
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        <span className="text-xs font-bold text-charcoal block">
+                          Click to browse or drop your PDF here
+                        </span>
+                        <span className="text-[11px] text-charcoal-soft block mt-1">
+                          Supports PDF documents, lecture notes, textbook chapters
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-charcoal uppercase tracking-wider block mb-1">
+                      Material Topic / Title (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={documentTitle}
+                      onChange={(e) => setDocumentTitle(e.target.value)}
+                      placeholder="e.g. Thermodynamics & Heat Engines"
+                      className="w-full px-3 py-2 bg-paper border border-rule rounded-lg text-xs text-charcoal focus:outline-none focus:border-violet"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* MODE 2: PASTE TEXT */}
+              {inputMode === 'paste' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-charcoal uppercase tracking-wider block mb-1">
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      value={documentTitle}
+                      onChange={(e) => setDocumentTitle(e.target.value)}
+                      placeholder="e.g. Organic Chemistry — Carbon Hybridization"
+                      className="w-full px-3 py-2 bg-paper border border-rule rounded-lg text-xs text-charcoal focus:outline-none focus:border-violet"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-charcoal uppercase tracking-wider block mb-1">
+                      Paste Lecture / Syllabus Notes
+                    </label>
+                    <textarea
+                      rows={6}
+                      value={pastedText}
+                      onChange={(e) => setPastedText(e.target.value)}
+                      placeholder="Paste your study material, lecture transcript, or textbook summary here…"
+                      className="w-full p-3 bg-paper border border-rule rounded-lg text-xs text-charcoal focus:outline-none focus:border-violet resize-none leading-relaxed"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* MODE 3: SAMPLE DATA */}
+              {inputMode === 'sample' && (
+                <div className="space-y-2.5">
+                  <span className="text-[11px] text-charcoal-soft block mb-1">
+                    Select a ready-to-use sample to test extraction:
+                  </span>
+                  {[
+                    { id: 'document', title: 'Quantum Mechanics & Wave Equations.pdf', subtitle: 'Physics textbook chapter', icon: FileText },
+                    { id: 'audio', title: 'Deep Learning Foundations.mp3', subtitle: 'Computer Science lecture notes', icon: FileAudio },
+                  ].map((s) => (
                     <button
-                      key={item.id}
-                      onClick={() => { setSelectedType(item.id); setIsDone(false); }}
-                      className={`w-full flex items-center gap-3 p-3.5 rounded-sm border text-left transition-all ${
-                        isSelected
-                          ? 'border-accent-primary bg-surface-tint shadow-soft text-text-primary font-medium'
-                          : 'border-border-subtle bg-surface hover:bg-bg-subtle/50 text-text-secondary'
+                      key={s.id}
+                      onClick={() => { setSampleType(s.id); setDocumentTitle(s.title); }}
+                      className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
+                        sampleType === s.id
+                          ? 'border-violet bg-violet/5 text-charcoal shadow-xs'
+                          : 'border-rule bg-card hover:bg-paper-deep text-charcoal-soft'
                       }`}
                     >
-                      <div className={`p-2 rounded-sm ${isSelected ? 'bg-accent-primary/15 text-accent-primary' : 'bg-bg-subtle text-text-muted'}`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
+                      <s.icon className={`w-4 h-4 ${sampleType === s.id ? 'text-violet' : 'text-charcoal-soft'}`} />
                       <div className="min-w-0 flex-1">
-                        <span className="text-xs font-semibold text-text-primary block truncate">
-                          {item.title}
-                        </span>
-                        <span className="text-[11px] text-text-secondary block">
-                          {item.subtitle}
-                        </span>
+                        <span className="text-xs font-bold block truncate">{s.title}</span>
+                        <span className="text-[10px] text-charcoal-soft block">{s.subtitle}</span>
                       </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Engine Badge */}
+              <div className="mt-4 p-2.5 rounded-lg bg-paper-deep border border-rule flex items-center justify-between text-[11px]">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-teal animate-pulse" />
+                  <span className="font-semibold text-charcoal">Nemotron 3.5 Bolt Parser</span>
+                </div>
+                <span className="text-[10px] text-charcoal-soft font-mono">Zero Latency</span>
+              </div>
+
+              {errorMsg && (
+                <div className="mt-3 p-2.5 rounded-lg bg-coral/10 border border-coral/30 text-coral text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+            </div>
+
+            {/* Parse Action Button */}
+            <div className="pt-5 mt-4 border-t border-rule">
+              {isProcessing && (
+                <div className="mb-3 space-y-1.5">
+                  <div className="flex justify-between text-[11px] font-mono">
+                    <span className="text-charcoal font-semibold">{statusMessage}</span>
+                    <span className="text-violet font-bold">{progress}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-paper-deep rounded-full overflow-hidden border border-rule">
+                    <div 
+                      className="h-full bg-violet transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={handleStartParsing}
+                disabled={isProcessing || (inputMode === 'upload' && !selectedFile) || (inputMode === 'paste' && !pastedText.trim())}
+                className="w-full py-3 px-4 rounded-xl text-xs font-bold text-white bg-violet hover:bg-violet-hover disabled:opacity-50 transition-all shadow-soft flex items-center justify-center gap-2"
+              >
+                {isProcessing ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Extracting with Nemotron AI…</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Extract Mind Map & Flashcards</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN: BEAUTIFULLY ORGANIZED OUTPUT (7 cols) */}
+          <div className="lg:col-span-7 bg-card border border-rule rounded-xl shadow-soft flex flex-col overflow-hidden min-h-[520px]">
+            
+            {/* Header Tabs Navigation */}
+            <div className="flex items-center justify-between border-b border-rule bg-paper-deep/60 px-4 py-2.5">
+              <div className="flex items-center gap-1 overflow-x-auto">
+                {[
+                  { id: 'points', label: 'Important Points', icon: CheckCircle2, ink: 'teal' },
+                  { id: 'mindmap', label: 'Mind Map', icon: BrainCircuit, ink: 'violet' },
+                  { id: 'flashcards', label: `Flashcards (${flashcards.length})`, icon: Lightbulb, ink: 'coral' },
+                  { id: 'mains', label: `Mains Prep (${mainsQuestions.length})`, icon: Award, ink: 'violet' },
+                ].map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                        isActive
+                          ? 'bg-card text-charcoal shadow-xs border border-rule'
+                          : 'text-charcoal-soft hover:text-charcoal'
+                      }`}
+                    >
+                      <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-violet' : 'text-charcoal-soft'}`} />
+                      {tab.label}
                     </button>
                   );
                 })}
               </div>
 
-              {/* File Specs */}
-              <div className="mt-5 p-3.5 rounded-sm bg-bg-subtle border border-border-subtle flex items-center justify-between text-xs">
-                <div>
-                  <span className="text-[10px] text-text-muted uppercase font-mono block">Format</span>
-                  <span className="font-medium text-text-primary">{activeLecture.type.toUpperCase()}</span>
-                </div>
-                <div className="h-4 border-r border-border-subtle" />
-                <div>
-                  <span className="text-[10px] text-text-muted uppercase font-mono block">Size</span>
-                  <span className="font-medium text-text-primary">{activeLecture.size}</span>
-                </div>
-                <div className="h-4 border-r border-border-subtle" />
-                <div>
-                  <span className="text-[10px] text-text-muted uppercase font-mono block">Pipeline</span>
-                  <span className="font-medium text-accent-primary">Gemini 1.5 + RAG</span>
-                </div>
-              </div>
+              <span className="hidden sm:inline-flex text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal/15 text-teal">
+                Nemotron Grounded
+              </span>
             </div>
 
-            {/* Launch Action */}
-            <div className="pt-6">
-              <button
-                onClick={handleStartProcessing}
-                disabled={isProcessing}
-                className="w-full py-3 rounded-sm text-xs font-semibold text-white bg-accent-primary hover:bg-accent-hover transition-all shadow-soft flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                {isProcessing ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Processing {progress}%…</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>Generate Structured Study Pack</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
+            {/* Tab Views Body */}
+            <div className="flex-1 p-5 sm:p-6 overflow-y-auto max-h-[500px]">
+              
+              {/* TAB 1: ALL NECESSARY IMPORTANT POINTS & SUMMARY */}
+              {activeTab === 'points' && (
+                <div className="space-y-5">
+                  <div className="border-b border-rule pb-3">
+                    <h3 className="text-base font-serif font-bold text-charcoal">
+                      {extractedData?.title || 'Extracted Study Overview'}
+                    </h3>
+                    <p className="text-xs text-charcoal-soft mt-1 leading-relaxed">
+                      {extractedData?.summary}
+                    </p>
+                  </div>
 
-          {/* Right: Output Workspace Screen (8 cols) */}
-          <div className="lg:col-span-8 bg-surface border border-border-subtle rounded-md flex flex-col min-h-[460px] overflow-hidden shadow-soft">
-            
-            {/* INITIAL STATE */}
-            {!isProcessing && !isDone && (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-surface-tint/30">
-                <div className="w-14 h-14 rounded-md bg-bg-subtle border border-border-subtle flex items-center justify-center text-accent-primary mb-4 shadow-soft">
-                  <BrainCircuit className="w-7 h-7" />
+                  <div>
+                    <h4 className="text-xs font-bold text-charcoal uppercase tracking-wider font-mono mb-3 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-teal" />
+                      Key Points & Exam Essentials
+                    </h4>
+                    
+                    <div className="space-y-2.5">
+                      {keyPoints.map((point, idx) => (
+                        <div 
+                          key={idx} 
+                          className="flex items-start gap-3 p-3 rounded-lg bg-paper-deep/60 border border-rule text-xs text-charcoal leading-relaxed"
+                        >
+                          <span className="w-5 h-5 rounded-full bg-teal/15 text-teal font-bold flex items-center justify-center shrink-0 text-[11px]">
+                            {idx + 1}
+                          </span>
+                          <span className="pt-0.5">{point}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                <h4 className="text-base font-bold text-text-primary mb-1">
-                  Ready to process lecture
-                </h4>
-                <p className="text-xs text-text-secondary max-w-sm mb-5 leading-relaxed">
-                  Click "Generate Structured Study Pack" on the left to observe how notes, concept maps, and SM-2 flashcards are generated.
-                </p>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface border border-border-subtle text-[11px] text-text-secondary">
-                  <span className="w-2 h-2 rounded-full bg-[#6FBF9A]"></span>
-                  FastAPI backend ready · RAG pipeline standby
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* PROCESSING STATE WITH SHIMMER PROGRESS */}
-            {isProcessing && (
-              <div className="flex-1 flex flex-col justify-between p-8 bg-surface">
+              {/* TAB 2: INTERACTIVE CONCEPT MIND MAP */}
+              {activeTab === 'mindmap' && (
                 <div className="space-y-4">
-                  <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">
-                    Pipeline In Progress
-                  </span>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-charcoal">Cognitive Concept Hierarchy</span>
+                    <span className="text-[11px] text-charcoal-soft font-mono">Central Root → Branches → Topics</span>
+                  </div>
 
-                  {/* Stage Progress labels */}
-                  <div className="space-y-3 pt-2">
-                    {stages.map((stage, idx) => {
-                      const isComplete = progress >= stage.pct;
-                      const isCurrent = stageIndex === idx;
-                      return (
-                        <div key={idx} className="flex items-center gap-3">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                            isComplete ? 'bg-success text-white' : isCurrent ? 'bg-accent-primary text-white animate-pulse' : 'bg-bg-subtle text-text-muted'
-                          }`}>
-                            {isComplete ? '✓' : idx + 1}
+                  {/* SVG Mind Map Tree */}
+                  <div className="bg-paper border border-rule rounded-xl p-4 overflow-x-auto shadow-inner">
+                    <div className="min-w-[480px]">
+                      {/* Central Root Node */}
+                      <div className="flex justify-center mb-6">
+                        <div className="px-5 py-2.5 rounded-xl bg-violet text-white text-xs font-bold shadow-soft border border-violet-hover inline-flex items-center gap-2">
+                          <BrainCircuit className="w-4 h-4" />
+                          <span>{mindmap.label}</span>
+                        </div>
+                      </div>
+
+                      {/* Main Branches */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {(mindmap.children || []).map((branch, bIdx) => (
+                          <div 
+                            key={bIdx}
+                            className="bg-card border border-rule rounded-xl p-3.5 flex flex-col justify-between shadow-xs hover:border-violet/40 transition-all"
+                          >
+                            <div className="border-b border-rule pb-2 mb-2.5 flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-coral" />
+                              <span className="text-xs font-bold text-charcoal">{branch.label}</span>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              {(branch.children || []).map((child, cIdx) => (
+                                <div 
+                                  key={cIdx}
+                                  className="text-[11px] px-2.5 py-1.5 rounded-md bg-paper-deep text-charcoal-soft font-medium flex items-center gap-1.5"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-teal" />
+                                  <span className="truncate">{child}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                          <span className={`text-xs ${isCurrent ? 'font-semibold text-text-primary' : isComplete ? 'text-text-secondary' : 'text-text-muted'}`}>
-                            {stage.label}
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: EXTRACTED FLASHCARDS */}
+              {activeTab === 'flashcards' && (
+                <div className="flex flex-col items-center justify-between min-h-[340px]">
+                  
+                  <div className="w-full flex items-center justify-between text-xs mb-3">
+                    <span className="font-mono text-charcoal-soft font-bold">
+                      CARD {currentCardIdx + 1} OF {flashcards.length}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-coral/15 text-coral font-bold text-[10px] uppercase">
+                      {flashcards[currentCardIdx]?.difficulty || 'Medium'} Recall
+                    </span>
+                  </div>
+
+                  {/* 3D Flip Card */}
+                  {flashcards.length > 0 ? (
+                    <div
+                      onClick={() => setIsFlipped(!isFlipped)}
+                      className="w-full max-w-lg h-56 perspective-1000 cursor-pointer select-none"
+                    >
+                      <div className={`relative w-full h-full duration-300 preserve-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
+                        
+                        {/* Front Side */}
+                        <div className="absolute inset-0 w-full h-full rounded-2xl border border-rule bg-card p-6 shadow-soft flex flex-col justify-between backface-hidden">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-violet uppercase tracking-widest flex items-center gap-1 font-mono">
+                              <HelpCircle className="w-3.5 h-3.5" /> QUESTION
+                            </span>
+                            <span className="text-[10px] text-charcoal-soft font-mono">
+                              {flashcards[currentCardIdx]?.tags}
+                            </span>
+                          </div>
+
+                          <p className="text-sm font-serif font-bold text-charcoal text-center px-4 leading-relaxed">
+                            {flashcards[currentCardIdx]?.front}
+                          </p>
+
+                          <div className="flex items-center justify-between text-[11px] text-charcoal-soft font-mono">
+                            <span>Hint: {flashcards[currentCardIdx]?.hint || 'Think key definition'}</span>
+                            <span className="text-violet font-semibold">Click to flip ↻</span>
+                          </div>
+                        </div>
+
+                        {/* Back Side */}
+                        <div className="absolute inset-0 w-full h-full rounded-2xl border border-teal/40 bg-paper-deep p-6 shadow-soft flex flex-col justify-between backface-hidden rotate-y-180">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-teal uppercase tracking-widest flex items-center gap-1 font-mono">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> RECALL ANSWER
+                            </span>
+                            <span className="text-[10px] text-teal font-mono font-bold">
+                              SM-2 Grounded
+                            </span>
+                          </div>
+
+                          <p className="text-xs sm:text-sm font-medium text-charcoal text-center px-4 leading-relaxed">
+                            {flashcards[currentCardIdx]?.back}
+                          </p>
+
+                          <div className="text-center text-[11px] text-charcoal-soft font-mono">
+                            Click to flip back
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 text-charcoal-soft text-xs">
+                      No flashcards extracted yet. Upload a document to generate.
+                    </div>
+                  )}
+
+                  {/* Card Navigation Controls */}
+                  <div className="w-full flex items-center justify-between pt-5 border-t border-rule mt-4">
+                    <button
+                      onClick={() => {
+                        if (currentCardIdx > 0) {
+                          setCurrentCardIdx(c => c - 1);
+                          setIsFlipped(false);
+                        }
+                      }}
+                      disabled={currentCardIdx === 0}
+                      className="px-3.5 py-1.5 rounded-lg border border-rule text-xs font-bold text-charcoal hover:bg-paper-deep disabled:opacity-30 transition-all flex items-center gap-1"
+                    >
+                      <ChevronLeft className="w-4 h-4" /> Prev
+                    </button>
+
+                    <span className="text-xs text-charcoal-soft font-sans">
+                      Tap card to reveal answer
+                    </span>
+
+                    <button
+                      onClick={() => {
+                        if (currentCardIdx < flashcards.length - 1) {
+                          setCurrentCardIdx(c => c + 1);
+                          setIsFlipped(false);
+                        }
+                      }}
+                      disabled={currentCardIdx === flashcards.length - 1}
+                      className="px-3.5 py-1.5 rounded-lg border border-rule text-xs font-bold text-charcoal hover:bg-paper-deep disabled:opacity-30 transition-all flex items-center gap-1"
+                    >
+                      Next <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                </div>
+              )}
+
+              {/* TAB 4: MAINS EXAM PREP QUESTIONS */}
+              {activeTab === 'mains' && (
+                <div className="space-y-4">
+                  <div className="border-b border-rule pb-2 flex items-center justify-between text-xs">
+                    <span className="font-bold text-charcoal">Mains Examination Practice Suite</span>
+                    <span className="text-[11px] text-charcoal-soft font-mono">Evaluated by Nemotron Reasoning</span>
+                  </div>
+
+                  <div className="space-y-4">
+                    {mainsQuestions.map((mq, idx) => (
+                      <div 
+                        key={idx}
+                        className="bg-paper-deep/70 border border-rule rounded-xl p-4 space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-xs font-serif font-bold text-charcoal leading-snug">
+                            Q{idx + 1}. {mq.question}
+                          </span>
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-coral/15 text-coral shrink-0">
+                            {mq.type || '10 Marks'}
                           </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
 
-                {/* Slim progress bar */}
-                <div className="space-y-2 pt-8">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-text-secondary">Reading through your lecture…</span>
-                    <span className="font-semibold text-text-primary tabular-nums">{progress}%</span>
-                  </div>
-                  <div className="w-full bg-bg-subtle h-2 rounded-full overflow-hidden border border-border-subtle">
-                    <div 
-                      className="bg-accent-primary h-full rounded-full transition-all duration-150"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* RESOLVED STATE */}
-            {isDone && (
-              <div className="flex-1 flex flex-col">
-                {/* Navigation Tabs */}
-                <div className="flex items-center justify-between border-b border-border-subtle bg-bg-subtle/50 px-4 py-2">
-                  <div className="flex items-center gap-1">
-                    {[
-                      { id: 'summary', label: 'Structured Notes', icon: Layers },
-                      { id: 'mindmap', label: 'Concept Map', icon: BrainCircuit },
-                      { id: 'flashcards', label: 'Flashcards', icon: Lightbulb },
-                      { id: 'chat', label: 'Ask AI', icon: MessageSquare },
-                    ].map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${
-                          activeTab === tab.id
-                            ? 'bg-surface text-text-primary font-semibold shadow-soft'
-                            : 'text-text-secondary hover:text-text-primary'
-                        }`}
-                      >
-                        <tab.icon className="w-3.5 h-3.5" />
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent-mint/20 text-[#2B7A5C]">
-                    Grounded in lecture
-                  </span>
-                </div>
-
-                {/* Tab Views */}
-                <div className="flex-1 p-6 overflow-y-auto max-h-[380px]">
-                  
-                  {/* TAB 1: SUMMARY / NOTES */}
-                  {activeTab === 'summary' && (
-                    <div className="space-y-5 animate-in fade-in duration-200">
-                      <div>
-                        <h4 className="text-base font-bold text-text-primary mb-1">
-                          {activeLecture.title}
-                        </h4>
-                        <span className="text-[11px] text-text-muted">Structured synopsis & key taxonomy</span>
-                      </div>
-                      
-                      <p className="text-xs text-text-secondary leading-relaxed bg-surface-tint p-4 rounded-sm border border-border-subtle">
-                        {activeLecture.summary}
-                      </p>
-
-                      <div>
-                        <h5 className="text-xs font-semibold text-text-primary uppercase tracking-wider mb-2.5">
-                          Extracted Key Concepts
-                        </h5>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                          {activeLecture.keyTakeaways.map((item, idx) => (
-                            <div key={idx} className="p-3 bg-surface rounded-sm border border-border-subtle shadow-soft">
-                              <span className="text-xs font-bold text-text-primary block mb-0.5">{item.term}</span>
-                              <p className="text-xs text-text-secondary leading-snug">{item.desc}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 2: CONCEPT MAP */}
-                  {activeTab === 'mindmap' && (
-                    <div className="space-y-4 animate-in fade-in duration-200">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-semibold text-text-primary">Interactive Concept Hierarchy</span>
-                        <span className="text-text-muted">Hover nodes to inspect relationships</span>
-                      </div>
-
-                      <div className="bg-surface-tint border border-border-subtle rounded-sm p-4 overflow-hidden">
-                        <svg className="w-full h-56" viewBox="0 0 540 220">
-                          {/* Connection Lines */}
-                          <line x1="270" y1="110" x2="110" y2="45" stroke="#DDD7E8" strokeWidth="1.5" />
-                          <line x1="270" y1="110" x2="110" y2="110" stroke="#DDD7E8" strokeWidth="1.5" />
-                          <line x1="270" y1="110" x2="110" y2="175" stroke="#DDD7E8" strokeWidth="1.5" />
-                          
-                          <line x1="110" y1="45" x2="25" y2="25" stroke="#E9E4F0" strokeWidth="1" />
-                          <line x1="110" y1="45" x2="25" y2="65" stroke="#E9E4F0" strokeWidth="1" />
-                          <line x1="110" y1="110" x2="25" y2="95" stroke="#E9E4F0" strokeWidth="1" />
-                          <line x1="110" y1="110" x2="25" y2="130" stroke="#E9E4F0" strokeWidth="1" />
-                          <line x1="110" y1="175" x2="25" y2="160" stroke="#E9E4F0" strokeWidth="1" />
-                          <line x1="110" y1="175" x2="25" y2="195" stroke="#E9E4F0" strokeWidth="1" />
-
-                          {/* Center Root Node */}
-                          <rect x="200" y="90" width="140" height="40" rx="8" fill="#FFFFFF" stroke="#8C7CF0" strokeWidth="2" />
-                          <text x="270" y="115" fill="#2A2730" fontSize="12" fontWeight="bold" textAnchor="middle">
-                            {activeLecture.mindmap.label}
-                          </text>
-
-                          {/* Branch Nodes */}
-                          {activeLecture.mindmap.children.map((child, idx) => {
-                            const y = idx === 0 ? 45 : idx === 1 ? 110 : 175;
-                            return (
-                              <g key={idx}>
-                                <rect x="50" y={y - 18} width="120" height="36" rx="6" fill="#FFFFFF" stroke="#D6CFE2" strokeWidth="1.5" />
-                                <text x="110" y={y + 4} fill="#2A2730" fontSize="10" fontWeight="600" textAnchor="middle">
-                                  {child.label}
-                                </text>
-                              </g>
-                            );
-                          })}
-                        </svg>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 3: FLASHCARDS */}
-                  {activeTab === 'flashcards' && (
-                    <div className="flex flex-col items-center justify-between min-h-[280px] animate-in fade-in duration-200">
-                      <div className="text-center mb-2">
-                        <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">
-                          Card {currentCardIdx + 1} of {activeLecture.flashcards.length}
-                        </span>
-                      </div>
-
-                      {/* 3D Flip Card */}
-                      <div
-                        onClick={() => setIsFlipped(!isFlipped)}
-                        className="w-full max-w-md h-44 perspective-1000 cursor-pointer select-none"
-                      >
-                        <div className={`relative w-full h-full duration-300 preserve-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
-                          {/* Front */}
-                          <div className="absolute inset-0 w-full h-full rounded-md border border-border-subtle bg-surface p-6 shadow-soft flex flex-col justify-between backface-hidden">
-                            <span className="text-[10px] font-bold text-accent-primary uppercase tracking-widest flex items-center gap-1">
-                              <HelpCircle className="w-3.5 h-3.5" /> Question
+                        {/* Evaluation Points */}
+                        {mq.keyEvaluationPoints && mq.keyEvaluationPoints.length > 0 && (
+                          <div className="bg-card p-3 rounded-lg border border-rule/60">
+                            <span className="text-[10px] font-bold text-charcoal-soft uppercase tracking-wider block font-mono mb-1.5">
+                              Key Evaluation Rubrics:
                             </span>
-                            <p className="text-sm font-semibold text-text-primary text-center px-4 leading-relaxed">
-                              {activeLecture.flashcards[currentCardIdx].front}
-                            </p>
-                            <span className="text-[10px] text-text-muted text-center uppercase tracking-wider">
-                              Click card to flip
-                            </span>
-                          </div>
-
-                          {/* Back */}
-                          <div className="absolute inset-0 w-full h-full rounded-md border border-accent-primary/40 bg-surface-tint p-6 shadow-soft flex flex-col justify-between backface-hidden rotate-y-180">
-                            <span className="text-[10px] font-bold text-accent-mint uppercase tracking-widest flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Explanation
-                            </span>
-                            <p className="text-xs font-medium text-text-primary text-center px-4 leading-relaxed">
-                              {activeLecture.flashcards[currentCardIdx].back}
-                            </p>
-                            <span className="text-[10px] text-text-muted text-center uppercase tracking-wider">
-                              Click card to flip back
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Controls */}
-                      <div className="flex items-center justify-between w-full max-w-md pt-4">
-                        <button
-                          onClick={() => {
-                            if (currentCardIdx > 0) {
-                              setCurrentCardIdx(c => c - 1);
-                              setIsFlipped(false);
-                            }
-                          }}
-                          disabled={currentCardIdx === 0}
-                          className="p-2 rounded-sm border border-border-subtle text-text-secondary hover:text-text-primary disabled:opacity-30"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        
-                        <span className="text-xs font-medium text-text-secondary">
-                          Space to flip · Next review in 3 days
-                        </span>
-
-                        <button
-                          onClick={() => {
-                            if (currentCardIdx < activeLecture.flashcards.length - 1) {
-                              setCurrentCardIdx(c => c + 1);
-                              setIsFlipped(false);
-                            }
-                          }}
-                          disabled={currentCardIdx === activeLecture.flashcards.length - 1}
-                          className="p-2 rounded-sm border border-border-subtle text-text-secondary hover:text-text-primary disabled:opacity-30"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 4: TUTOR CHAT WITH CITATIONS */}
-                  {activeTab === 'chat' && (
-                    <div className="flex flex-col h-full space-y-4 animate-in fade-in duration-200">
-                      {/* Messages Thread */}
-                      <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
-                        {messages.map((msg, idx) => (
-                          <div key={idx} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                            <div className={`p-3 rounded-md text-xs leading-relaxed max-w-[85%] ${
-                              msg.sender === 'user'
-                                ? 'bg-accent-primary text-white'
-                                : 'bg-surface-tint border border-border-subtle text-text-primary'
-                            }`}>
-                              <p>{msg.text}</p>
-                              {msg.citations && msg.citations.length > 0 && (
-                                <div className="mt-2 pt-1.5 border-t border-border-subtle/60 flex items-center gap-1.5 text-[10px]">
-                                  <span className="text-text-muted font-mono">Sources:</span>
-                                  {msg.citations.map((c, cIdx) => (
-                                    <span key={cIdx} className="px-1.5 py-0.5 rounded bg-surface border border-border-subtle font-mono text-accent-primary font-semibold">
-                                      {c}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                        {isTyping && (
-                          <div className="text-xs text-text-muted italic flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 animate-spin text-accent-primary" />
-                            <span>Tutor is formulating explanation…</span>
+                            <ul className="list-disc list-inside space-y-1 text-[11px] text-charcoal">
+                              {mq.keyEvaluationPoints.map((pt, pIdx) => (
+                                <li key={pIdx}>{pt}</li>
+                              ))}
+                            </ul>
                           </div>
                         )}
+
+                        {/* Model Answer */}
+                        <div className="bg-card p-3 rounded-lg border border-rule/60">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-bold text-teal uppercase tracking-wider font-mono">
+                              Model Scoring Answer:
+                            </span>
+                            <button
+                              onClick={() => copyToClipboard(mq.modelAnswer, idx)}
+                              className="text-[11px] text-charcoal-soft hover:text-charcoal flex items-center gap-1 font-mono"
+                            >
+                              {copiedAnswerIdx === idx ? <Check className="w-3 h-3 text-teal" /> : <Copy className="w-3 h-3" />}
+                              <span>{copiedAnswerIdx === idx ? 'Copied' : 'Copy'}</span>
+                            </button>
+                          </div>
+                          <p className="text-xs text-charcoal leading-relaxed whitespace-pre-line">
+                            {mq.modelAnswer}
+                          </p>
+                        </div>
+
                       </div>
-
-                      {/* Suggested Questions */}
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {activeLecture.suggestedQuestions.map((q, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => {
-                              setMessages(prev => [...prev, { sender: 'user', text: q }]);
-                              setIsTyping(true);
-                              setTimeout(() => {
-                                setMessages(prev => [...prev, {
-                                  sender: 'ai',
-                                  text: `Regarding "${q}": The lecture emphasizes this as a core topic because it governs state transformations.`,
-                                  citations: ["18:42"]
-                                }]);
-                                setIsTyping(false);
-                              }, 800);
-                            }}
-                            className="px-2.5 py-1 rounded-full bg-bg-subtle hover:bg-border-subtle text-[11px] text-text-secondary transition-colors text-left"
-                          >
-                            "{q}"
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Chat Input Bar */}
-                      <form onSubmit={handleSendMessage} className="flex gap-2 pt-2">
-                        <input
-                          type="text"
-                          value={inputValue}
-                          onChange={(e) => setInputValue(e.target.value)}
-                          placeholder="Ask a question grounded in this lecture…"
-                          className="flex-1 px-3 py-2 bg-bg-subtle border border-border-subtle rounded-sm text-xs text-text-primary focus-ring"
-                        />
-                        <button
-                          type="submit"
-                          className="px-4 py-2 bg-accent-primary text-white text-xs font-semibold rounded-sm hover:bg-accent-hover transition-colors"
-                        >
-                          Ask
-                        </button>
-                      </form>
-                    </div>
-                  )}
-
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+            </div>
 
           </div>
 

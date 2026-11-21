@@ -187,7 +187,7 @@ export default function App() {
                         href="#sandbox"
                         className="inline-flex items-center gap-2 text-sm font-semibold text-charcoal hover:text-teal transition-colors pb-0.5 border-b-2 border-charcoal hover:border-teal"
                       >
-                        Try Interactive Sandbox →
+                        Try PDF & Mind Map Studio →
                       </a>
                     </div>
 
