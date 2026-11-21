@@ -253,7 +253,10 @@ export default function Dashboard({ currentUser, onBackToHome, onShowToast }) {
     }
   })();
 
-  const latestTopic = localStorage.getItem('lecturemind_latest_topic') || (storedSubjects[0]?.name) || null;
+  const rawTopic = localStorage.getItem('lecturemind_latest_topic');
+  const latestTopic = (rawTopic && !rawTopic.toLowerCase().includes('backpropagation')) 
+    ? rawTopic 
+    : (storedSubjects[0]?.name || null);
 
   const upcomingExams = storedSubjects.length > 0
     ? storedSubjects.slice(0, 3).map((s, idx) => ({
@@ -398,7 +401,7 @@ export default function Dashboard({ currentUser, onBackToHome, onShowToast }) {
         {[
           { id: 'metrics', label: 'Study Metrics Room', hash: '#/dashboard/metrics', icon: BookMarked, ink: 'charcoal' },
           { id: 'explorer', label: 'Lectures & Folder Manager', hash: '#/dashboard/subjects', icon: Layers, ink: 'violet' },
-          { id: 'flashcards', label: 'SM-2 Flashcard Hub', hash: '#/dashboard/flashcards', icon: Brain, ink: 'violet' },
+          { id: 'flashcards', label: 'Agentic Revision & Mind Hub', hash: '#/dashboard/flashcards', icon: Brain, ink: 'violet' },
           { id: 'exam', label: 'Timed Exam Simulator', hash: '#/dashboard/exam', icon: Timer, ink: 'coral' },
           { id: 'voice', label: 'Voice Socratic Tutor', hash: '#/dashboard/voice', icon: Mic, ink: 'violet' },
           { id: 'analytics', label: 'Progress Analytics', hash: '#/dashboard/analytics', icon: TrendingUp, ink: 'teal' },

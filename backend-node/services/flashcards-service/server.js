@@ -175,6 +175,10 @@ app.delete('/api/flashcards/sets/:setId', auth, async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`[Flashcards Service] Running on port ${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`[Flashcards Service] Running on port ${PORT}`);
+  });
+}
+
+module.exports = app;

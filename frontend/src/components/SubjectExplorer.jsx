@@ -66,8 +66,27 @@ export default function SubjectExplorer({ currentUser: _currentUser, onShowToast
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
-        if (res.ok && data.success) {
-          setSubjects(data.subjects);
+        if (res.ok && data.success && Array.isArray(data.subjects) && data.subjects.length > 0) {
+          // Merge with any rich local materials (mind maps, keyPoints) stored locally
+          const localStr = localStorage.getItem('lecturemind_guest_subjects');
+          const localSubjects = localStr ? JSON.parse(localStr) : [];
+          
+          const merged = data.subjects.map(dbSub => {
+            const localMatch = localSubjects.find(ls => ls.name === dbSub.name || ls.id === dbSub.id);
+            if (localMatch) {
+              return { ...localMatch, ...dbSub, chapters: localMatch.chapters || dbSub.chapters };
+            }
+            return dbSub;
+          });
+          
+          // Add any local subjects not yet in DB
+          for (const ls of localSubjects) {
+            if (!merged.some(m => m.name === ls.name || m.id === ls.id)) {
+              merged.push(ls);
+            }
+          }
+          
+          setSubjects(merged);
           return;
         }
       } catch (err) {

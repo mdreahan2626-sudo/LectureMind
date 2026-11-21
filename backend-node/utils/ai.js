@@ -1,164 +1,319 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { callNemotron } = require('./nemotron');
 
-const apiKey = process.env.GEMINI_API_KEY;
-let aiClient = null;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash'];
 
-if (apiKey) {
+let geminiClient = null;
+if (GEMINI_API_KEY) {
   try {
-    aiClient = new GoogleGenerativeAI(apiKey);
+    geminiClient = new GoogleGenerativeAI(GEMINI_API_KEY);
   } catch (err) {
-    // Gemini optional
+    console.warn('[AI Engine] Failed initializing GoogleGenerativeAI client:', err.message);
   }
 }
 
-async function generateFlashcards(text, sourceType = 'text') {
-  // 1. Try Nemotron AI Engine
-  try {
-    const prompt = `You are an expert AI learning assistant. Generate between 5 to 8 high-quality study flashcards based on the material below:
-Material content:
-${text.slice(0, 8000)}
+/**
+ * Robust Multi-Provider LLM Caller
+ * Attempts Google Gemini first (cycling through models if needed),
+ * then falls back seamlessly to NVIDIA Nemotron NIM.
+ */
+async function callLLM(prompt, systemInstruction = "You are EduAssist, an advanced, accurate, and structured academic AI tutor.") {
+  // 1. Try Google Gemini with modern models
+  if (geminiClient) {
+    for (const modelName of GEMINI_MODELS) {
+      try {
+        const model = geminiClient.getGenerativeModel({
+          model: modelName,
+          systemInstruction: systemInstruction
+        });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        if (text && text.trim().length > 0) {
+          return text.trim();
+        }
+      } catch (err) {
+        // If 503 (demand spike) or 404 (deprecated), try next Gemini model or fallback to Nemotron
+        console.warn(`[Gemini Engine] ${modelName} call failed (${err.message.slice(0, 80)}). Trying next...`);
+      }
+    }
+  }
 
-Return ONLY a valid JSON array of objects. Format:
+  // 2. Fallback to NVIDIA Nemotron NIM
+  try {
+    console.log('[AI Engine] Routing request to NVIDIA Nemotron-3.5 NIM...');
+    const nemotronResponse = await callNemotron(prompt, systemInstruction);
+    if (nemotronResponse && nemotronResponse.trim().length > 0) {
+      return nemotronResponse.trim();
+    }
+  } catch (err) {
+    console.warn('[Nemotron Engine] Failed:', err.message);
+  }
+
+  throw new Error('Both Google Gemini and NVIDIA Nemotron AI providers are currently unavailable.');
+}
+
+/**
+ * Generate Spaced Repetition Flashcards from text
+ */
+async function generateFlashcards(text, sourceType = 'text') {
+  const prompt = `You are an expert curriculum designer. Based on the following study material, generate 5 to 10 spaced-repetition flashcards.
+Text:
+${text.slice(0, 10000)}
+
+Requirements:
+- Test core definitions, problem-solving formulas, and examination edge cases.
+- Use a mix of "front_back" question/answer and "cloze" fill-in-the-blank style with {{blank}}.
+- Assign realistic difficulty: "easy", "medium", or "hard".
+- Reply ONLY with a valid JSON array matching this format:
 [
   {
-    "front": "Question testing a key principle or cloze sentence with {{blank}}",
-    "back": "Answer",
+    "front": "Question prompt or cloze sentence with {{blank}}",
+    "back": "Direct concise answer",
     "type": "front_back",
-    "hint": "Helpful hint",
+    "hint": "Helpful cognitive memory cue",
     "difficulty": "medium",
-    "tags": "Core"
+    "tags": "CoreConcept"
   }
 ]`;
 
-    const raw = await callNemotron(prompt, "You are a professional educational flashcard generator. Reply ONLY with a valid JSON array.");
+  try {
+    const raw = await callLLM(prompt, "You are a flashcard generator. Reply ONLY with a valid JSON array.");
     let cleaned = raw.trim();
     if (cleaned.startsWith('```')) {
       cleaned = cleaned.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
     }
-    const firstBracket = cleaned.indexOf('[');
-    const lastBracket = cleaned.lastIndexOf(']');
-    if (firstBracket !== -1 && lastBracket !== -1) {
-      cleaned = cleaned.substring(firstBracket, lastBracket + 1);
+    const start = cleaned.indexOf('[');
+    const end = cleaned.lastIndexOf(']');
+    if (start !== -1 && end !== -1 && end > start) {
+      cleaned = cleaned.substring(start, end + 1);
     }
     const cards = JSON.parse(cleaned);
     if (Array.isArray(cards) && cards.length > 0) {
       return cards;
     }
   } catch (err) {
-    console.warn('[Nemotron Flashcards] Generation error:', err.message);
+    console.warn('[AI Flashcards] Parsing error:', err.message);
   }
 
-  // 2. Fallback to Gemini if configured
-  if (aiClient) {
-    try {
-      const model = aiClient.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      const prompt = `Generate 5 flashcards in JSON from: ${text.slice(0, 4000)}`;
-      const result = await model.generateContent(prompt);
-      let outputText = result.response.text().trim();
-      if (outputText.startsWith('```')) {
-        outputText = outputText.replace(/^```json/, '').replace(/^```/, '').replace(/```$/, '').trim();
-      }
-      return JSON.parse(outputText);
-    } catch (e) {
-      // Ignore
-    }
-  }
-
-  // 3. Local fallback parser
-  return generateLocalFallbackCards(text, sourceType);
+  // Dynamic sentence-based fallback if parsing fails
+  return generateDynamicCards(text, sourceType);
 }
 
-function generateLocalFallbackCards(text, sourceType) {
-  const cleanText = text.trim();
-  const sentences = cleanText.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 10);
-  
-  const cards = [];
-  
-  // Custom mock rules based on keywords
-  if (cleanText.toLowerCase().includes('schrödinger') || cleanText.toLowerCase().includes('quantum')) {
-    cards.push({
-      front: "What does the Schrödinger Equation describe?",
-      back: "It describes the wave function of a quantum-mechanical system, which governs its probability density.",
-      type: "front_back",
-      hint: "Think wave mechanics.",
-      difficulty: "hard",
-      tags: "Physics"
-    });
-    cards.push({
-      front: "The {{probability density}} is proportional to the square modulus of the wave function.",
-      back: "probability density",
-      type: "cloze",
-      hint: "Born rule definition.",
-      difficulty: "medium",
-      tags: "Physics"
-    });
-  }
+/**
+ * Generate Structured Notes, Key Points, Formula Sheet & Mind Map
+ */
+async function generateStructuredNotes(text, title = "Lecture Notes", detailLevel = "DETAILED") {
+  const prompt = `You are an elite academic professor. Analyze this study material and produce comprehensive revision materials.
+Title: "${title}"
+Detail Level: ${detailLevel}
+Material:
+${text.slice(0, 12000)}
 
-  if (cleanText.toLowerCase().includes('backpropagation') || cleanText.toLowerCase().includes('gradient') || cleanText.toLowerCase().includes('neural')) {
-    cards.push({
-      front: "In neural networks, what is the main rule used to calculate backpropagation gradients?",
-      back: "The Chain Rule of Calculus.",
-      type: "front_back",
-      hint: "Derivative of nested functions.",
-      difficulty: "medium",
-      tags: "Deep Learning"
-    });
-    cards.push({
-      front: "The {{gradient descent}} algorithm is used to iteratively update neural network weights to minimize loss.",
-      back: "gradient descent",
-      type: "cloze",
-      hint: "Optimization method.",
-      difficulty: "easy",
-      tags: "Deep Learning"
-    });
-  }
-
-  // Generic fallback cards generated from the text sentences
-  if (sentences.length > 0) {
-    const f1 = sentences[0];
-    cards.push({
-      front: `Explain this key concept: "${f1}"`,
-      back: `This outlines the foundational concept from the study notes regarding ${sourceType}.`,
-      type: "front_back",
-      hint: "Refer to the text description.",
-      difficulty: "medium",
-      tags: sourceType.toUpperCase()
-    });
-
-    if (sentences.length > 1) {
-      const f2 = sentences[1];
-      const words = f2.split(' ');
-      if (words.length > 4) {
-        const targetWord = words[Math.floor(words.length / 2)].replace(/[^a-zA-Z]/g, '');
-        const clozeSentence = f2.replace(targetWord, `{{${targetWord}}}`);
-        cards.push({
-          front: clozeSentence,
-          back: targetWord,
-          type: "cloze",
-          hint: "Fills in the blank.",
-          difficulty: "easy",
-          tags: sourceType.toUpperCase()
-        });
+Return ONLY a valid JSON object matching this schema:
+{
+  "summary": "Concise 3-4 sentence academic executive summary",
+  "keyPoints": [
+    "Key takeaway 1 with specific definitions",
+    "Key takeaway 2 with operational mechanics",
+    "Key takeaway 3 with problem-solving approach"
+  ],
+  "contentMarkdown": "# ${title}\\n\\n## 1. Overview\\nDetailed content here with KaTeX math like $E = mc^2$ or $\\\\frac{d}{dx}f(x)$ where relevant...\\n\\n## 2. Core Principles\\nDetailed breakdown with comparison tables where useful...\\n\\n## 3. Examination Focus Points\\nKey things to remember.",
+  "formulas": [
+    { "name": "Formula Name", "equation": "$$\\\\text{Formula}$$", "description": "When to apply" }
+  ],
+  "mindmap": {
+    "label": "${title}",
+    "children": [
+      {
+        "label": "Foundation",
+        "children": ["Concept 1", "Concept 2"]
+      },
+      {
+        "label": "Methodology",
+        "children": ["Step A", "Step B"]
+      },
+      {
+        "label": "Diagnostics & Applications",
+        "children": ["Use Case 1", "Evaluation"]
       }
+    ]
+  }
+}`;
+
+  try {
+    const raw = await callLLM(prompt, "You are an academic textbook author and knowledge graph architect. Reply ONLY with a valid JSON object.");
+    let cleaned = raw.trim();
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+    }
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      cleaned = cleaned.substring(start, end + 1);
+    }
+    return JSON.parse(cleaned);
+  } catch (err) {
+    console.warn('[AI Notes] Parsing error:', err.message);
+    return {
+      summary: `Synthesized lecture material for ${title}.`,
+      keyPoints: [
+        `Core theoretical foundations and primary definitions for ${title}.`,
+        `Analytical problem-solving methodologies and computational derivations.`,
+        `Key examination checkpoints and diagnostic applications.`
+      ],
+      contentMarkdown: `# ${title}\n\n## Summary\nComprehensive synthesized notes for ${title}.\n\n## Key Takeaways\n- Master fundamental definitions and axioms.\n- Practice relevant step-by-step problem sets.`,
+      formulas: [],
+      mindmap: {
+        label: title,
+        children: [
+          { label: "Core Principles", children: ["Foundations", "Definitions"] },
+          { label: "Methodology", children: ["Mechanics", "Problem Solving"] },
+          { label: "Review", children: ["Practice Questions", "Diagnostics"] }
+        ]
+      }
+    };
+  }
+}
+
+/**
+ * Generate Timed Exam Questions (MCQ, Short Answer, Coding)
+ */
+async function generateQuizQuestions(text, options = {}) {
+  const { title = "Academic Assessment", count = 5, difficulty = "medium" } = options;
+  const prompt = `Based on the following material, generate ${count} examination questions suitable for a timed test.
+Title: "${title}"
+Target Difficulty: ${difficulty}
+Material:
+${text.slice(0, 10000)}
+
+Requirements:
+- Generate high-quality questions (multiple-choice or short-answer).
+- Provide 4 distinct choices for MCQs, with clear correct answers and rigorous explanations.
+- Reply ONLY with a valid JSON array:
+[
+  {
+    "id": "q1",
+    "type": "MCQ",
+    "prompt": "Clear, precise question prompt",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctAnswer": "Option A",
+    "explanation": "Detailed step-by-step reasoning why Option A is correct and why other choices are misconceptions.",
+    "difficulty": "${difficulty}"
+  }
+]`;
+
+  try {
+    const raw = await callLLM(prompt, "You are a strict academic examiner. Reply ONLY with a valid JSON array.");
+    let cleaned = raw.trim();
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+    }
+    const start = cleaned.indexOf('[');
+    const end = cleaned.lastIndexOf(']');
+    if (start !== -1 && end !== -1 && end > start) {
+      cleaned = cleaned.substring(start, end + 1);
+    }
+    const questions = JSON.parse(cleaned);
+    if (Array.isArray(questions) && questions.length > 0) {
+      return questions;
+    }
+  } catch (err) {
+    console.warn('[AI Quiz] Parsing error:', err.message);
+  }
+
+  // Fallback questions based on material
+  return [
+    {
+      id: "q1",
+      type: "MCQ",
+      prompt: `Which of the following best characterizes the primary objective of ${title}?`,
+      options: [
+        `Understanding fundamental axioms and structural properties of ${title}.`,
+        "Memorizing disconnected historical trivia.",
+        "Ignoring boundary constraints and test conditions.",
+        "None of the above."
+      ],
+      correctAnswer: `Understanding fundamental axioms and structural properties of ${title}.`,
+      explanation: `The uploaded study material focuses directly on establishing foundational mechanics and core definitions for ${title}.`,
+      difficulty: "medium"
+    }
+  ];
+}
+
+/**
+ * Conversational Academic Tutor with specialized Pedagogical Modes
+ */
+async function generateTutorResponse(messages, mode = "EXPLAIN") {
+  const modeInstructions = {
+    EXPLAIN: "Explain complex concepts clearly using intuitive analogies, real-world examples, and step-by-step breakdowns. Format equations in KaTeX ($...$).",
+    EXAM_PREP: "Act as an exam coach. Highlight high-yield points, common exam pitfalls, marking scheme criteria, and expected test questions.",
+    SOCRATIC: "Do NOT reveal answers directly. Guide the student by asking thought-provoking follow-up questions that challenge their logic and test their understanding step by step.",
+    PROBLEM_SOLVING: "Break down the problem systematically: 1) Given values, 2) Governing formula, 3) Step-by-step calculation, 4) Final verification.",
+    INTERVIEW_PREP: "Act as a technical or academic interviewer. Evaluate the student's answer, score it for rigor, and ask deep follow-up questions."
+  };
+
+  const systemPrompt = `You are EduAssist, an elite academic assistant.
+Mode: ${mode}
+Pedagogical Rule: ${modeInstructions[mode] || modeInstructions.EXPLAIN}
+Always respond with clarity, mathematical accuracy, and high academic rigor. Format formulas using KaTeX ($inline$ or $$display$$).`;
+
+  const conversationText = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
+  const prompt = `${conversationText}\n\nASSISTANT:`;
+
+  return await callLLM(prompt, systemPrompt);
+}
+
+/**
+ * Dynamic fallback cards for any user content
+ */
+function generateDynamicCards(text, sourceType) {
+  const clean = text.trim();
+  const sentences = clean.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 15);
+  const cards = [];
+
+  for (let i = 0; i < Math.min(sentences.length, 5); i++) {
+    const s = sentences[i];
+    const words = s.split(/\s+/).filter(w => w.length > 4);
+    if (words.length > 3) {
+      const target = words[Math.floor(words.length / 2)].replace(/[^a-zA-Z0-9]/g, '');
+      const cloze = s.replace(new RegExp(`\\b${target}\\b`, 'i'), `{{${target}}}`);
+      cards.push({
+        front: cloze,
+        back: target,
+        type: "cloze",
+        hint: `Key term in ${sourceType}`,
+        difficulty: i % 2 === 0 ? "medium" : "easy",
+        tags: sourceType
+      });
+    } else {
+      cards.push({
+        front: `What is the significance of: "${s.slice(0, 100)}..."?`,
+        back: s,
+        type: "front_back",
+        hint: "Review core notes",
+        difficulty: "medium",
+        tags: sourceType
+      });
     }
   }
 
-  // Ensure we return at least 3 cards
-  if (cards.length < 3) {
-    cards.push({
-      front: "What is the primary topic discussed in these notes?",
-      back: cleanText.substring(0, 100) + "...",
+  return cards.length > 0 ? cards : [
+    {
+      front: `What is the primary topic discussed in these ${sourceType} notes?`,
+      back: clean.slice(0, 200),
       type: "front_back",
-      hint: "Summary overview.",
+      hint: "Central focus",
       difficulty: "easy",
-      tags: "General"
-    });
-  }
-
-  return cards;
+      tags: sourceType
+    }
+  ];
 }
 
 module.exports = {
-  generateFlashcards
+  callLLM,
+  generateFlashcards,
+  generateStructuredNotes,
+  generateQuizQuestions,
+  generateTutorResponse
 };

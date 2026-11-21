@@ -633,6 +633,55 @@ app.post('/api/nemotron/upload-pdf', upload.single('file'), async (req, res) => 
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`[AI Service] Running on port ${PORT}`);
+// 10. Agentic Revision Coach Endpoint
+app.post('/api/nemotron/revision-coach', async (req, res) => {
+  const { action, topic, summary, keyPoints, studentAnswer } = req.body;
+  
+  const systemPrompt = "You are an Agentic Revision Coach designed to help students master and revise complex academic topics rapidly. Be structured, concise, and academically sharp.";
+  let userPrompt = "";
+
+  if (action === 'drill') {
+    userPrompt = `Based on the topic "${topic}" and key points:
+${JSON.stringify(keyPoints || summary)}
+Generate a challenging, conceptual revision question to test the student's real understanding (not just rote memorization), along with 3 key points their answer should cover.`;
+  } else if (action === 'mistakes') {
+    userPrompt = `For the topic "${topic}":
+${JSON.stringify(keyPoints || summary)}
+List the top 3 common mistakes or misconceptions students make in exams, and how to avoid losing marks.`;
+  } else if (action === 'mnemonic') {
+    userPrompt = `For the topic "${topic}" and its points:
+${JSON.stringify(keyPoints || summary)}
+Create a memorable, clever mnemonic or simple 3-step mental model to easily recall these points during an exam.`;
+  } else if (action === 'evaluate') {
+    userPrompt = `Topic: "${topic}"
+Key facts: ${JSON.stringify(keyPoints || summary)}
+Student's Answer: "${studentAnswer}"
+
+Evaluate this answer. Provide:
+1. Score out of 10.
+2. Strengths (what they got right).
+3. Missed Points (what critical keywords or concepts were omitted).
+4. Improved Revision Model Answer in 2-3 sentences.`;
+  } else {
+    userPrompt = `Help the student revise "${topic}":
+Summary: ${summary}
+Key Points: ${JSON.stringify(keyPoints)}
+Provide an engaging Socratic explanation and prompt them for their understanding.`;
+  }
+
+  try {
+    const coachResponse = await callNemotron(userPrompt, systemPrompt);
+    res.json({ success: true, response: coachResponse });
+  } catch (err) {
+    console.error('Revision coach error:', err.message);
+    res.status(500).json({ error: 'Failed to generate revision coach guidance.' });
+  }
 });
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`[AI Service] Running on port ${PORT}`);
+  });
+}
+
+module.exports = app;

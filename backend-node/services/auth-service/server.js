@@ -171,6 +171,10 @@ app.post('/api/auth/reset-password', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`[Auth Service] Running on port ${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`[Auth Service] Running on port ${PORT}`);
+  });
+}
+
+module.exports = app;

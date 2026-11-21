@@ -9,18 +9,18 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
-// Proxy Helper using Node's built-in http module
+// Proxy Helper supporting JSON bodies and multipart streaming
 const proxyTo = (targetBaseUrl) => (req, res) => {
   const targetUrl = new URL(`${targetBaseUrl}${req.originalUrl}`);
-  const body = (req.method !== 'GET' && req.method !== 'HEAD') ? JSON.stringify(req.body) : null;
+  const isMultipart = (req.headers['content-type'] || '').includes('multipart');
+  const hasJsonBody = !isMultipart && req.body && Object.keys(req.body).length > 0;
+  const body = hasJsonBody ? JSON.stringify(req.body) : null;
 
   const headers = { ...req.headers };
   delete headers.host;
-  if (body) {
+  if (hasJsonBody) {
     headers['content-type'] = 'application/json';
     headers['content-length'] = Buffer.byteLength(body);
-  } else {
-    delete headers['content-length'];
   }
 
   const options = {
@@ -46,17 +46,21 @@ const proxyTo = (targetBaseUrl) => (req, res) => {
     }
   });
 
-  if (body) proxyReq.write(body);
-  proxyReq.end();
+  if (hasJsonBody) {
+    proxyReq.write(body);
+    proxyReq.end();
+  } else {
+    req.pipe(proxyReq);
+  }
 };
 
-// Target Microservices URLs
+// Target Microservices URLs (Use 127.0.0.1 to avoid macOS IPv6 localhost resolution mismatch)
 const SERVICES = {
-  AUTH: process.env.AUTH_SERVICE_URL || 'http://localhost:5011',
-  USER: process.env.USER_SERVICE_URL || 'http://localhost:5012',
-  SUBJECTS: process.env.SUBJECTS_SERVICE_URL || 'http://localhost:5013',
-  FLASHCARDS: process.env.FLASHCARDS_SERVICE_URL || 'http://localhost:5014',
-  AI: process.env.AI_SERVICE_URL || 'http://localhost:5015'
+  AUTH: process.env.AUTH_SERVICE_URL || 'http://127.0.0.1:5011',
+  USER: process.env.USER_SERVICE_URL || 'http://127.0.0.1:5012',
+  SUBJECTS: process.env.SUBJECTS_SERVICE_URL || 'http://127.0.0.1:5013',
+  FLASHCARDS: process.env.FLASHCARDS_SERVICE_URL || 'http://127.0.0.1:5014',
+  AI: process.env.AI_SERVICE_URL || 'http://127.0.0.1:5015'
 };
 
 // Gateway Health Check

@@ -8,43 +8,56 @@ generator client {
 }
 
 model User {
-  id                        String         @id @default(uuid())
-  email                     String         @unique
+  id                        String           @id @default(uuid())
+  email                     String           @unique
   password                  String
-  isVerified                Boolean        @default(false)
+  fullName                  String           @default("Student")
+  role                      String           @default("STUDENT") // STUDENT, ADMIN, EDUCATOR
+  avatarUrl                 String?
+  isVerified                Boolean          @default(true)
   verificationToken         String?
   verificationTokenExpires  DateTime?
   resetPasswordToken        String?
   resetPasswordTokenExpires DateTime?
   otp                       String?
   otpExpires                DateTime?
-  studiedToday              Float          @default(0.0)
-  weeklyHours               Float          @default(0.0)
-  weeklyGoal                Float          @default(20.0)
+  studiedToday              Float            @default(0.0)
+  weeklyHours               Float            @default(0.0)
+  weeklyGoal                Float            @default(20.0)
+  theme                     String           @default("light") // light, dark, system
+  studyPace                 String           @default("moderate") // slow, moderate, intensive
+  targetExam                String?
   subjects                  Subject[]
+  documents                 Document[]
+  notes                     Note[]
   flashcardSets             FlashcardSet[]
   quizzes                   Quiz[]
   quizSubmissions           QuizSubmission[]
-  createdAt                 DateTime       @default(now())
-  updatedAt                 DateTime       @updatedAt
+  studySessions             StudySession[]
+  chatSessions              ChatSession[]
+  learningGoals             LearningGoal[]
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
 }
 
 model Subject {
-  id          String    @id @default(uuid())
+  id          String     @id @default(uuid())
   name        String
   description String?
-  color       String    @default("from-blue-600 to-indigo-600")
-  tags        String    @default("") // Comma-separated tags
+  color       String     @default("from-blue-600 to-indigo-600")
+  tags        String     @default("") // Comma-separated tags
   userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   chapters    Chapter[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  documents   Document[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
 model Chapter {
   id        String   @id @default(uuid())
   name      String
+  order     Int      @default(1)
   subjectId String
   subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   topics    Topic[]
@@ -58,6 +71,8 @@ model Topic {
   chapterId String
   chapter   Chapter    @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   materials Material[]
+  notes     Note[]
+  concepts  Concept[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
@@ -65,9 +80,9 @@ model Topic {
 model Material {
   id        String   @id @default(uuid())
   name      String
-  type      String   // 'note' | 'pdf' | 'ppt' | 'image'
+  type      String   // 'note' | 'pdf' | 'ppt' | 'image' | 'audio'
   content   String?  // Rich text or raw content for notes
-  fileUrl   String?  // Mock attachment link
+  fileUrl   String?  // Storage path / reference
   fileSize  String?  // e.g. '2.4 MB'
   topicId   String
   topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
@@ -75,14 +90,80 @@ model Material {
   updatedAt DateTime @updatedAt
 }
 
+model Document {
+  id          String          @id @default(uuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId   String?
+  subject     Subject?        @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  fileName    String
+  fileSize    Int             @default(0)
+  mimeType    String          @default("application/pdf")
+  storagePath String?
+  status      String          @default("READY") // UPLOADED, PROCESSING, READY, FAILED
+  pageCount   Int             @default(1)
+  summary     String?
+  keyPoints   String?         // JSON string
+  mindmapJson String?         // JSON string
+  chunks      DocumentChunk[]
+  notes       Note[]
+  chatSessions ChatSession[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model DocumentChunk {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  chunkIndex  Int
+  pageNumber  Int      @default(1)
+  content     String
+  tokenCount  Int      @default(0)
+  embedding   String?  // Serialized float array for retrieval
+  createdAt   DateTime @default(now())
+}
+
+model Concept {
+  id             String    @id @default(uuid())
+  topicId        String
+  topic          Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  name           String
+  definition     String
+  masteryScore   Float     @default(70.0) // 0 to 100
+  lastReviewedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Note {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId         String?
+  topic           Topic?    @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  documentId      String?
+  document        Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  title           String
+  detailLevel     String    @default("DETAILED") // SHORT, DETAILED, REVISION
+  contentMarkdown String
+  keyPoints       String?   // JSON string of key points
+  mindmapJson     String?   // JSON string of nodes and edges
+  formulaSheet    String?   // JSON string of formulas
+  isEditable      Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
 model FlashcardSet {
-  id        String      @id @default(uuid())
-  title     String
-  userId    String
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cards     Flashcard[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id          String      @id @default(uuid())
+  title       String
+  description String?
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cards       Flashcard[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 
 model Flashcard {
@@ -91,41 +172,94 @@ model Flashcard {
   set        FlashcardSet @relation(fields: [setId], references: [id], onDelete: Cascade)
   front      String       // The question text or cloze deletion sentence
   back       String       // The answer text
-  type       String       // 'front_back' | 'cloze'
+  type       String       @default("front_back") // 'front_back' | 'cloze'
   hint       String?
   difficulty String       @default("medium") // 'easy' | 'medium' | 'hard'
   tags       String       @default("") // Subject tags
   bookmarked Boolean      @default(false)
-  // SM-2 Spaced Repetition parameters
-  interval   Int          @default(1)    // Days until next review
-  repetition Int          @default(0)    // Number of consecutive successful reviews
-  easeFactor Float        @default(2.5)  // Difficulty multiplier
+  
+  // SuperMemo-2 (SM-2) Spaced Repetition parameters
+  interval   Int          @default(1)    // Days until next review (I_n)
+  repetition Int          @default(0)    // Number of consecutive successful reviews (n)
+  easeFactor Float        @default(2.5)  // Difficulty multiplier (EF)
   dueDate    DateTime     @default(now())// Scheduled review date
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 }
 
 model Quiz {
-  id          String           @id @default(uuid())
-  title       String
-  timeLimit   Int              @default(15) // in minutes
-  questions   String           // JSON string of questions
-  userId      String
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  submissions QuizSubmission[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id              String           @id @default(uuid())
+  title           String
+  topicName       String           @default("General")
+  timeLimit       Int              @default(15) // in minutes
+  difficulty      String           @default("medium") // easy, medium, hard
+  questions       String           // JSON string of questions [{ id, type, prompt, options, correctAnswer, explanation, difficulty }]
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submissions     QuizSubmission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 model QuizSubmission {
-  id        String   @id @default(uuid())
-  quizId    String
-  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  score     Float
-  total     Int
-  answers   String   // JSON string of user's answers
-  feedback  String   // JSON string of AI feedback explanations
-  createdAt DateTime @default(now())
+  id                 String   @id @default(uuid())
+  quizId             String
+  quiz               Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score              Float
+  total              Int
+  accuracyPercent    Float    @default(0.0)
+  timeSpentSeconds   Int      @default(0)
+  answers            String   // JSON string of user's answers
+  feedback           String   // JSON string of AI feedback explanations
+  weakTopicsDetected String?  // JSON string of weak topics
+  createdAt          DateTime @default(now())
+}
+
+model StudySession {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityType    String   // "FLASHCARDS" | "QUIZ" | "NOTES" | "TUTOR" | "CODING"
+  subject         String   @default("General")
+  durationMinutes Int      @default(15)
+  completedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+}
+
+model ChatSession {
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentId  String?
+  document    Document?     @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  title       String        @default("Academic Consultation")
+  mode        String        @default("EXPLAIN") // EXPLAIN, EXAM_PREP, SOCRATIC, PROBLEM_SOLVING, INTERVIEW_PREP
+  messages    ChatMessage[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model ChatMessage {
+  id         String      @id @default(uuid())
+  sessionId  String
+  session    ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role       String      // "user" | "assistant" | "system"
+  content    String
+  citations  String?     // JSON string [{ pageNumber, quote, source }]
+  audioUrl   String?
+  createdAt  DateTime    @default(now())
+}
+
+model LearningGoal {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  targetDate      DateTime?
+  progressPercent Float     @default(0.0)
+  isCompleted     Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }

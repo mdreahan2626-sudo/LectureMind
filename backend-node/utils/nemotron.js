@@ -1,4 +1,15 @@
-const pdfParse = require('pdf-parse');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash'];
+let geminiClient = null;
+if (GEMINI_API_KEY) {
+  try {
+    geminiClient = new GoogleGenerativeAI(GEMINI_API_KEY);
+  } catch (err) {
+    console.warn('[Gemini Init Error]:', err.message);
+  }
+}
 
 const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || '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';
 const NVIDIA_BACKUP_API_KEY = process.env.NVIDIA_BACKUP_API_KEY || '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';
@@ -72,14 +83,22 @@ function extractJSON(text) {
 }
 
 /**
- * Extract raw text from PDF buffer
+ * Extract raw text from PDF buffer (Supports both pdf-parse v1 and v2)
  */
 async function extractTextFromPDF(buffer) {
   try {
-    const data = await pdfParse(buffer);
-    return data.text || '';
+    const pdfModule = require('pdf-parse');
+    if (typeof pdfModule === 'function') {
+      const data = await pdfModule(buffer);
+      return data.text || '';
+    } else if (pdfModule && pdfModule.PDFParse) {
+      const parser = new pdfModule.PDFParse({ data: buffer });
+      const res = await parser.getText();
+      return res.text || '';
+    }
+    return '';
   } catch (err) {
-    console.error('[Nemotron Parser] Failed to parse PDF buffer:', err.message);
+    console.error('[PDF Parser] Failed to parse PDF buffer:', err.message);
     throw new Error('Could not extract text from the uploaded PDF document.');
   }
 }
@@ -187,11 +206,38 @@ Ensure the mindmap has a clear central label and 3-5 branches each with 2-4 subt
 Return ONLY the raw JSON.`;
 
   try {
-    const rawResult = await callNemotron(prompt, systemInstruction, 3000);
+    let rawResult = null;
+    
+    // 1. Try Google Gemini with high-speed gemini-3.5-flash-lite
+    if (geminiClient) {
+      for (const modelName of GEMINI_MODELS) {
+        try {
+          const model = geminiClient.getGenerativeModel({
+            model: modelName,
+            systemInstruction: systemInstruction
+          });
+          const result = await model.generateContent(prompt);
+          const text = result.response.text();
+          if (text && text.trim().length > 0) {
+            rawResult = text.trim();
+            break;
+          }
+        } catch (geminiErr) {
+          console.warn(`[Gemini Parse] ${modelName} spike or error:`, geminiErr.message.slice(0, 80));
+        }
+      }
+    }
+
+    // 2. Fallback to NVIDIA Nemotron NIM if Gemini did not produce a result
+    if (!rawResult) {
+      console.log('[Study Parser] Falling back to NVIDIA Nemotron NIM...');
+      rawResult = await callNemotron(prompt, systemInstruction, 3000);
+    }
+
     const parsed = extractJSON(rawResult);
     return parsed;
   } catch (err) {
-    console.error('[Nemotron Parse Error]:', err.message);
+    console.error('[Study Material Parse Error]:', err.message);
     // Fallback if formatting was malformed
     return {
       title,
