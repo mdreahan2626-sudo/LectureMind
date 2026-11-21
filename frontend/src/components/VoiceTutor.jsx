@@ -2,7 +2,23 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Volume2, VolumeX, Bot, HelpCircle } from 'lucide-react';
 import { API_URL } from '../config';
 
-export default function VoiceTutor({ contextText = "Neural Networks and Deep Learning basics" }) {
+export default function VoiceTutor({ contextText }) {
+  const storedSubjects = (() => {
+    try {
+      const raw = localStorage.getItem('lecturemind_guest_subjects');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  })();
+
+  const activeSubject = storedSubjects[0];
+  const activeCourseName = activeSubject?.name || 'Your Uploaded Lecture Material';
+  const effectiveContext = contextText 
+    || activeSubject?.chapters?.[0]?.topics?.[0]?.materials?.[0]?.content 
+    || activeSubject?.description 
+    || "General Academic Study Material";
+
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -10,9 +26,9 @@ export default function VoiceTutor({ contextText = "Neural Networks and Deep Lea
   const [messages, setMessages] = useState([
     { 
       sender: 'bot', 
-      text: 'Hello! I am your Socratic voice companion. Can you explain the main role of an activation function in your own words?',
+      text: `Hello! I am your Socratic voice companion for "${activeCourseName}". Can you summarize the core thesis or theorem of this material in your own words?`,
       confidence: 3,
-      citations: ["04:15"]
+      citations: ["Course Notes"]
     }
   ]);
   const [loading, setLoading] = useState(false);
@@ -71,7 +87,7 @@ export default function VoiceTutor({ contextText = "Neural Networks and Deep Lea
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: query,
-          context: contextText
+          context: effectiveContext
         })
       });
       const data = await res.json();

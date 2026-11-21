@@ -21,7 +21,8 @@ import {
   ChevronLeft,
   X,
   Keyboard,
-  Receipt
+  Receipt,
+  BrainCircuit
 } from 'lucide-react';
 
 export default function FlashcardHub({ currentUser: _currentUser, onShowToast }) {
@@ -83,22 +84,102 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
   }, [activeSet, isFlipped, currentCardIndex, studyMode]);
 
   const fetchFlashcardSets = async () => {
+    let combinedSets = [];
     const token = localStorage.getItem('token');
+    
+    // 1. Fetch from Database if authenticated
     if (token) {
       try {
         const res = await fetch(`${API_URL}/api/flashcards`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
-        if (res.ok && data.success) {
-          setSets(data.sets);
-          return;
+        if (res.ok && data.success && Array.isArray(data.sets) && data.sets.length > 0) {
+          combinedSets = [...data.sets];
         }
       } catch (err) {
-        console.error("Failed to load DB flashcards:", err.message);
+        console.warn("Failed to load DB flashcards:", err.message);
       }
     }
-    loadFallbackLocalSets();
+
+    // 2. Fetch from Local Flashcards Cache
+    try {
+      const local = localStorage.getItem('lecturemind_guest_flashcards');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed)) {
+          parsed.forEach(p => {
+            if (!combinedSets.some(s => s.title === p.title)) {
+              combinedSets.push(p);
+            }
+          });
+        }
+      }
+    } catch (e) {}
+
+    // 3. Automatically extract and build flashcard sets from ANY uploaded courses in Folder Manager
+    try {
+      const subjectsRaw = localStorage.getItem('lecturemind_guest_subjects');
+      if (subjectsRaw) {
+        const subjects = JSON.parse(subjectsRaw);
+        subjects.forEach(subj => {
+          (subj.chapters || []).forEach(chap => {
+            (chap.topics || []).forEach(top => {
+              (top.materials || []).forEach(mat => {
+                if (!combinedSets.some(s => s.title === subj.name)) {
+                  let cards = [];
+                  if (mat.flashcards && mat.flashcards.length > 0) {
+                    cards = mat.flashcards.map((fc, idx) => ({
+                      id: `c-${subj.id}-${idx}`,
+                      front: fc.front,
+                      back: fc.back,
+                      type: fc.front && fc.front.includes('{{') ? 'cloze' : 'front_back',
+                      hint: fc.hint || '',
+                      difficulty: fc.difficulty || 'medium',
+                      tags: subj.name,
+                      bookmarked: false
+                    }));
+                  } else if (mat.keyPoints && mat.keyPoints.length > 0) {
+                    cards = mat.keyPoints.map((kp, idx) => ({
+                      id: `c-kp-${subj.id}-${idx}`,
+                      front: `Key Concept #${idx + 1}: What is the core takeaway for ${subj.name}?`,
+                      back: kp,
+                      type: 'front_back',
+                      hint: 'Review key evaluation point',
+                      difficulty: idx % 2 === 0 ? 'easy' : 'medium',
+                      tags: subj.name,
+                      bookmarked: false
+                    }));
+                  }
+
+                  if (cards.length > 0) {
+                    combinedSets.unshift({
+                      id: `set-${subj.id}`,
+                      title: subj.name,
+                      mindmap: mat.mindmap || {
+                        label: subj.name,
+                        children: [
+                          { label: "Core Principles", children: (cards.slice(0, 3).map(c => c.back.slice(0, 25))) },
+                          { label: "Exam Points", children: (cards.slice(3, 6).map(c => c.back.slice(0, 25))) }
+                        ]
+                      },
+                      cards
+                    });
+                  }
+                }
+              });
+            });
+          });
+        });
+      }
+    } catch (e) {}
+
+    if (combinedSets.length > 0) {
+      setSets(combinedSets);
+      setActiveSet(combinedSets[0]);
+    } else {
+      loadFallbackLocalSets();
+    }
   };
 
   const loadFallbackLocalSets = () => {
@@ -439,6 +520,7 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
                   { id: 'spaced', label: 'SM-2 Spaced' },
                   { id: 'flip', label: 'Manual Flip' },
                   { id: 'exam', label: 'Quiz Mode' },
+                  { id: 'mindmap', label: '🧠 Concept Mind Map' },
                 ].map(mode => (
                   <button
                     key={mode.id}
@@ -697,6 +779,62 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
                   </div>
                 )}
 
+                {/* 3. MIND MAP VIEW */}
+                {studyMode === 'mindmap' && (
+                  <div className="bg-paper border border-rule rounded-xl p-6 shadow-soft space-y-6">
+                    <div className="border-b border-rule pb-3 flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-bold text-charcoal uppercase tracking-wider font-mono">
+                          Cognitive Concept Mind Map
+                        </h4>
+                        <p className="text-xs text-charcoal-soft">
+                          Generated from {activeSet?.title}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-violet/15 text-violet">
+                        Nemotron Mind Map
+                      </span>
+                    </div>
+
+                    {/* Mind Map Tree */}
+                    <div className="p-4 bg-card border border-rule rounded-xl overflow-x-auto">
+                      <div className="min-w-[500px]">
+                        {/* Central Node */}
+                        <div className="flex justify-center mb-6">
+                          <div className="px-6 py-3 rounded-2xl bg-violet text-white text-xs font-bold shadow-soft flex items-center gap-2 border border-violet-hover">
+                            <BrainCircuit className="w-4 h-4" />
+                            <span>{activeSet?.mindmap?.label || activeSet?.title}</span>
+                          </div>
+                        </div>
+
+                        {/* Main Branches */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          {(activeSet?.mindmap?.children || [
+                            { label: "Core Principles", children: activeSet?.cards?.slice(0, 3).map(c => c.hint || c.front.slice(0, 25)) || ["Core Concepts"] },
+                            { label: "Definitions", children: activeSet?.cards?.slice(3, 6).map(c => c.front.slice(0, 25)) || ["Terms"] },
+                            { label: "Exam Points", children: ["Problem Solutions", "Evaluation Criteria"] }
+                          ]).map((branch, bIdx) => (
+                            <div key={bIdx} className="bg-paper-deep/60 border border-rule rounded-xl p-4 space-y-2">
+                              <div className="border-b border-rule pb-1.5 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-coral" />
+                                <span className="text-xs font-bold text-charcoal">{branch.label}</span>
+                              </div>
+                              <div className="space-y-1.5">
+                                {(branch.children || []).map((child, cIdx) => (
+                                  <div key={cIdx} className="text-[11px] p-2 rounded-md bg-card text-charcoal border border-rule/60 flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-teal" />
+                                    <span className="truncate">{child}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* 2. EXAM QUIZ MODE */}
                 {studyMode === 'exam' && (
                   <div className="bg-surface border border-border-subtle rounded-md p-6 shadow-soft space-y-6">
@@ -746,6 +884,62 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
                         </button>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* 3. MIND MAP VIEW */}
+                {studyMode === 'mindmap' && (
+                  <div className="bg-paper border border-rule rounded-xl p-6 shadow-soft space-y-6">
+                    <div className="border-b border-rule pb-3 flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-bold text-charcoal uppercase tracking-wider font-mono">
+                          Cognitive Concept Mind Map
+                        </h4>
+                        <p className="text-xs text-charcoal-soft">
+                          Generated from {activeSet?.title}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-violet/15 text-violet">
+                        Nemotron Mind Map
+                      </span>
+                    </div>
+
+                    {/* Mind Map Tree */}
+                    <div className="p-4 bg-card border border-rule rounded-xl overflow-x-auto">
+                      <div className="min-w-[500px]">
+                        {/* Central Node */}
+                        <div className="flex justify-center mb-6">
+                          <div className="px-6 py-3 rounded-2xl bg-violet text-white text-xs font-bold shadow-soft flex items-center gap-2 border border-violet-hover">
+                            <BrainCircuit className="w-4 h-4" />
+                            <span>{activeSet?.mindmap?.label || activeSet?.title}</span>
+                          </div>
+                        </div>
+
+                        {/* Main Branches */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          {(activeSet?.mindmap?.children || [
+                            { label: "Core Principles", children: activeSet?.cards?.slice(0, 3).map(c => c.hint || c.front.slice(0, 25)) || ["Core Concepts"] },
+                            { label: "Definitions", children: activeSet?.cards?.slice(3, 6).map(c => c.front.slice(0, 25)) || ["Terms"] },
+                            { label: "Exam Points", children: ["Problem Solutions", "Evaluation Criteria"] }
+                          ]).map((branch, bIdx) => (
+                            <div key={bIdx} className="bg-paper-deep/60 border border-rule rounded-xl p-4 space-y-2">
+                              <div className="border-b border-rule pb-1.5 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-coral" />
+                                <span className="text-xs font-bold text-charcoal">{branch.label}</span>
+                              </div>
+                              <div className="space-y-1.5">
+                                {(branch.children || []).map((child, cIdx) => (
+                                  <div key={cIdx} className="text-[11px] p-2 rounded-md bg-card text-charcoal border border-rule/60 flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-teal" />
+                                    <span className="truncate">{child}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 

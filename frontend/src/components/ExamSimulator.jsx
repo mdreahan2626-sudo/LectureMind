@@ -5,15 +5,35 @@ import { API_URL } from '../config';
 export default function ExamSimulator({ onShowToast }) {
   const [stage, setStage] = useState('setup'); // 'setup' | 'active' | 'results'
   
-  const savedTopic = localStorage.getItem('lecturemind_latest_topic') || '';
+  const storedSubjects = (() => {
+    try {
+      const raw = localStorage.getItem('lecturemind_guest_subjects');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  })();
+
+  const savedTopic = localStorage.getItem('lecturemind_latest_topic') || storedSubjects[0]?.name || '';
+  const initialContent = storedSubjects[0]?.chapters?.[0]?.topics?.[0]?.materials?.[0]?.content || '';
+
   const [title, setTitle] = useState(savedTopic || 'My Course Exam');
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState(initialContent);
   const [timeLimit, setTimeLimit] = useState(10);
   const [loading, setLoading] = useState(false);
   const [quiz, setQuiz] = useState(null);
   const [userAnswers, setUserAnswers] = useState({});
   const [submission, setSubmission] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    if (storedSubjects.length > 0 && !content) {
+      const first = storedSubjects[0];
+      setTitle(first.name);
+      const mat = first.chapters?.[0]?.topics?.[0]?.materials?.[0];
+      if (mat?.content) setContent(mat.content);
+    }
+  }, []);
 
   useEffect(() => {
     if (stage !== 'active' || timeLeft <= 0) return;
@@ -160,6 +180,37 @@ export default function ExamSimulator({ onShowToast }) {
       {/* STAGE 1: SETUP */}
       {stage === 'setup' && (
         <div className="space-y-4 max-w-xl">
+          {storedSubjects.length > 0 && (
+            <div className="p-3 rounded-lg bg-paper-deep border border-rule">
+              <span className="text-[11px] font-bold text-charcoal uppercase tracking-wider block font-mono mb-2">
+                Quick Select Uploaded PDF / Course:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {storedSubjects.map((s, idx) => {
+                  const matContent = s.chapters?.[0]?.topics?.[0]?.materials?.[0]?.content || s.description || '';
+                  const isSelected = title === s.name;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setTitle(s.name);
+                        setContent(matContent);
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+                        isSelected
+                          ? 'bg-violet text-white border-violet shadow-soft'
+                          : 'bg-card text-charcoal border-rule hover:border-violet/60'
+                      }`}
+                    >
+                      {s.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold text-charcoal mb-1">Exam Topic Title</label>
             <input 

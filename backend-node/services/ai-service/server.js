@@ -354,7 +354,7 @@ app.post('/api/rag/query', async (req, res) => {
   }
 });
 
-// 6. RAG-Augmented Chat with lecture
+// 6. RAG-Augmented Chat / Socratic Tutor with lecture
 app.post('/api/chat', async (req, res) => {
   const { message, context, topK } = req.body;
   if (!message || !context) {
@@ -362,44 +362,31 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
-    // 1. RAG Chunking and Indexing
-    const indexedChunks = await rag.indexDocument(context, 'Lecture Context', aiClient);
+    const prompt = `You are an expert Socratic academic tutor. Explain the concept and guide the student, grounded in the following lecture material:
+Material Context:
+${context.slice(0, 8000)}
+
+Student Question / Statement:
+"${message}"
+
+Give a clear, insightful, encouraging explanation in 2 to 4 sentences:`;
+
+    const nemotronReply = await callNemotron(prompt, "You are an expert Socratic tutor assisting a university student.");
     
-    // 2. RAG Semantic Search Retrieval
-    const retrievedChunks = await rag.searchSimilarChunks(message, indexedChunks, topK || 3, aiClient);
-
-    // 3. Fallback check for AI client
-    if (!aiClient) {
-      const topContextSnippet = retrievedChunks.length > 0 ? retrievedChunks[0].text : context.substring(0, 200);
-      return res.json({
-        reply: `[RAG Sandbox Mode]\nBased on retrieved passage chunk [Chunk 1] (Confidence: ${retrievedChunks[0]?.confidencePct || 85}%):\n"${topContextSnippet.substring(0, 150)}..."\n\nHow can I help you explore this topic further?`,
-        rag: {
-          enabled: true,
-          mode: 'sandbox_vectorizer',
-          retrievedCount: retrievedChunks.length,
-          retrievedChunks: retrievedChunks
-        }
-      });
-    }
-
-    // 4. RAG Prompt Synthesis & LLM Call
-    const ragPrompt = rag.buildRAGPrompt(message, retrievedChunks);
-    const model = aiClient.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const result = await model.generateContent(ragPrompt);
-    const replyText = result.response.text();
-
     res.json({
-      reply: replyText,
+      reply: nemotronReply,
       rag: {
         enabled: true,
-        mode: 'gemini_vector_embedding',
-        retrievedCount: retrievedChunks.length,
-        retrievedChunks: retrievedChunks
+        mode: 'nemotron_bolt_grounded',
+        retrievedCount: 1
       }
     });
   } catch (error) {
-    console.error('RAG Chat error:', error);
-    res.status(500).json({ error: 'Server error during RAG chat response.' });
+    console.error('Nemotron Chat error:', error);
+    res.json({
+      reply: `Based on your uploaded material: ${context.substring(0, 180)}...\n\nWhat specific part of this concept would you like to drill into next?`,
+      rag: { enabled: true, mode: 'fallback' }
+    });
   }
 });
 
@@ -435,40 +422,46 @@ app.post('/api/ai/quiz/generate', auth, async (req, res) => {
 
   try {
     let questions = [];
-    if (aiClient) {
-      const model = aiClient.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      const prompt = `You are an expert academic test generator. Generate a structured quiz of ${questionCount} questions based on the text content below.
-      Include a mix of Multiple Choice (type: 'mcq') and Short Answer (type: 'short') questions.
-      
-      Return ONLY a valid JSON array of objects. Format:
-      [
-        {
-          "id": "q1",
-          "type": "mcq",
-          "question": "Question text...",
-          "options": ["Option A", "Option B", "Option C", "Option D"],
-          "correctAnswer": "Option A",
-          "explanation": "Detailed explanation why Option A is correct..."
-        },
-        {
-          "id": "q2",
-          "type": "short",
-          "question": "Short question text...",
-          "correctAnswer": "Key concept definition...",
-          "explanation": "Explanation..."
-        }
-      ]
-      
-      Content:
-      ${text}`;
+    try {
+      const prompt = `You are an expert academic exam creator. Generate a structured exam of ${questionCount} questions based on this study text:
+"${title}":
+${text.slice(0, 8000)}
 
-      const result = await model.generateContent(prompt);
-      let outputText = result.response.text().trim();
-      if (outputText.startsWith('```')) {
-        outputText = outputText.replace(/^```json/, '').replace(/^```/, '').replace(/```$/, '').trim();
+Return ONLY a valid JSON array of objects. Format:
+[
+  {
+    "id": "q1",
+    "type": "mcq",
+    "question": "Question text...",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctAnswer": "Option A",
+    "explanation": "Detailed explanation..."
+  },
+  {
+    "id": "q2",
+    "type": "short",
+    "question": "Short answer question...",
+    "correctAnswer": "Answer...",
+    "explanation": "Explanation..."
+  }
+]`;
+
+      const raw = await callNemotron(prompt, "You are an elite exam question creator. Return ONLY valid JSON array.");
+      let cleaned = raw.trim();
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
       }
-      questions = JSON.parse(outputText);
-    } else {
+      const firstBracket = cleaned.indexOf('[');
+      const lastBracket = cleaned.lastIndexOf(']');
+      if (firstBracket !== -1 && lastBracket !== -1) {
+        cleaned = cleaned.substring(firstBracket, lastBracket + 1);
+      }
+      questions = JSON.parse(cleaned);
+    } catch (nemErr) {
+      console.warn('[Nemotron Quiz] error:', nemErr.message);
+    }
+
+    if (!questions || questions.length === 0) {
       questions = [
         {
           id: "q1",

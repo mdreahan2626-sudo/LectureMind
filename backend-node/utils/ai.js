@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { callNemotron } = require('./nemotron');
 
 const apiKey = process.env.GEMINI_API_KEY;
 let aiClient = null;
@@ -6,64 +7,65 @@ let aiClient = null;
 if (apiKey) {
   try {
     aiClient = new GoogleGenerativeAI(apiKey);
-    console.log('[Gemini AI] Initialized GoogleGenerativeAI SDK successfully.');
   } catch (err) {
-    console.error('[Gemini AI] Failed to initialize GoogleGenerativeAI:', err.message);
+    // Gemini optional
   }
-} else {
-  console.warn('[Gemini AI] GEMINI_API_KEY is not defined. Using local fallback engine.');
 }
 
 async function generateFlashcards(text, sourceType = 'text') {
+  // 1. Try Nemotron AI Engine
+  try {
+    const prompt = `You are an expert AI learning assistant. Generate between 5 to 8 high-quality study flashcards based on the material below:
+Material content:
+${text.slice(0, 8000)}
+
+Return ONLY a valid JSON array of objects. Format:
+[
+  {
+    "front": "Question testing a key principle or cloze sentence with {{blank}}",
+    "back": "Answer",
+    "type": "front_back",
+    "hint": "Helpful hint",
+    "difficulty": "medium",
+    "tags": "Core"
+  }
+]`;
+
+    const raw = await callNemotron(prompt, "You are a professional educational flashcard generator. Reply ONLY with a valid JSON array.");
+    let cleaned = raw.trim();
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+    }
+    const firstBracket = cleaned.indexOf('[');
+    const lastBracket = cleaned.lastIndexOf(']');
+    if (firstBracket !== -1 && lastBracket !== -1) {
+      cleaned = cleaned.substring(firstBracket, lastBracket + 1);
+    }
+    const cards = JSON.parse(cleaned);
+    if (Array.isArray(cards) && cards.length > 0) {
+      return cards;
+    }
+  } catch (err) {
+    console.warn('[Nemotron Flashcards] Generation error:', err.message);
+  }
+
+  // 2. Fallback to Gemini if configured
   if (aiClient) {
     try {
       const model = aiClient.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      
-      const prompt = `
-You are an expert AI learning assistant. Your task is to generate a list of high-quality, conceptual study flashcards based on the provided material content below.
-The material source type is: "${sourceType}".
-
-Generate between 5 to 8 flashcards. Each card must belong to one of these types:
-1. "front_back": Standard Question (front) and Answer (back).
-2. "cloze": A fill-in-the-blank sentence where the key term is replaced by double curly braces. Example: "The {{mitochondria}} is the powerhouse of the cell." with the back being "mitochondria".
-
-For each card, provide:
-- "front": The question or cloze sentence.
-- "back": The answer.
-- "type": "front_back" or "cloze".
-- "hint": A subtle, helpful hint.
-- "difficulty": "easy", "medium", or "hard".
-- "tags": A single relevant subject tag.
-
-Return ONLY a valid JSON array of objects. Do not include markdown formatting or "json" blocks.
-Format:
-[
-  { "front": "...", "back": "...", "type": "...", "hint": "...", "difficulty": "...", "tags": "..." }
-]
-
-Material content:
-${text}
-`;
-
+      const prompt = `Generate 5 flashcards in JSON from: ${text.slice(0, 4000)}`;
       const result = await model.generateContent(prompt);
-      const response = await result.response;
-      let outputText = response.text().trim();
-      
-      // Clean markdown code blocks if the model returned them
+      let outputText = result.response.text().trim();
       if (outputText.startsWith('```')) {
         outputText = outputText.replace(/^```json/, '').replace(/^```/, '').replace(/```$/, '').trim();
       }
-
-      const cards = JSON.parse(outputText);
-      if (Array.isArray(cards)) {
-        return cards;
-      }
-    } catch (err) {
-      console.error('[Gemini AI] Generation error, falling back to local engine:', err.message);
+      return JSON.parse(outputText);
+    } catch (e) {
+      // Ignore
     }
   }
 
-  // Local fallback parser
+  // 3. Local fallback parser
   return generateLocalFallbackCards(text, sourceType);
 }
 
