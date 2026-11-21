@@ -211,29 +211,136 @@ export default function SubjectExplorer({ currentUser: _currentUser, onShowToast
     }, 150);
   };
 
-  const addNewLectureMaterialFromFile = (file) => {
+  const addNewLectureMaterialFromFile = async (file) => {
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+    const cleanTitle = nameWithoutExt.replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
+    
     const newMaterial = {
       id: "mat-" + Date.now(),
       name: `${nameWithoutExt}.note`,
-      type: file.type.includes('pdf') ? 'pdf' : file.type.includes('audio') ? 'audio' : 'note',
-      content: `Automated notes generated from ${file.name}.\n\nThis material covers key structural concepts, formulas, and definitions extracted by LectureMind AI.`,
-      fileSize: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+      type: file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : file.type.includes('audio') ? 'audio' : 'note',
+      content: `Extracted study notes and conceptual breakdown for "${cleanTitle}".\n\nThis material contains structured definitions, prerequisite trees, and core formulas extracted by LectureMind AI.`,
+      fileSize: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
       transcript: [
-        { time: "00:30", text: "Introduction to the main lecture theme and syllabus goals." },
-        { time: "14:15", text: "Detailed mathematical breakdown of the core principles." },
-        { time: "28:50", text: "Summary review and practical diagnostic examples." }
+        { time: "00:00", text: `Introduction and problem definition for ${cleanTitle}.` },
+        { time: "08:15", text: "Mathematical analysis and step-by-step resolution." },
+        { time: "18:30", text: "Summary, verification theorems, and examination review." }
       ],
       concepts: [
-        { id: 'nc1', name: nameWithoutExt, mastery: 65, definition: 'Core subject concept extracted from lecture upload.' }
+        { id: 'nc1', name: cleanTitle, mastery: 75, definition: `Primary subject domain extracted from ${file.name}.` },
+        { id: 'nc2', name: 'Key Solutions', mastery: 88, definition: 'Step-by-step solutions and scoring methodology.' }
       ]
     };
 
-    if (subjects.length > 0) {
-      const updated = [...subjects];
-      if (updated[0].chapters && updated[0].chapters[0]?.topics && updated[0].chapters[0].topics[0]) {
-        updated[0].chapters[0].topics[0].materials.unshift(newMaterial);
-        saveLocalTree(updated);
+    let updatedTree = [];
+    if (!subjects || subjects.length === 0) {
+      const newSubj = {
+        id: "sub-" + Date.now(),
+        name: cleanTitle,
+        description: `Automated course knowledge base for ${file.name}.`,
+        tags: file.name.toLowerCase().endsWith('.pdf') ? 'PDF, Examination' : 'Lecture, Notes',
+        color: "from-blue-600 to-indigo-600",
+        chapters: [
+          {
+            id: "chap-" + Date.now(),
+            name: "Chapter 1: Lecture Notes & Solutions",
+            topics: [
+              {
+                id: "top-" + Date.now(),
+                name: cleanTitle,
+                materials: [newMaterial]
+              }
+            ]
+          }
+        ]
+      };
+      updatedTree = [newSubj];
+    } else {
+      const newSubj = {
+        id: "sub-" + Date.now(),
+        name: cleanTitle,
+        description: `Uploaded from ${file.name}.`,
+        tags: 'PDF, Ingested',
+        color: "from-purple-600 to-indigo-600",
+        chapters: [
+          {
+            id: "chap-" + Date.now(),
+            name: "Chapter 1: Solutions & Notes",
+            topics: [
+              {
+                id: "top-" + Date.now(),
+                name: cleanTitle,
+                materials: [newMaterial]
+              }
+            ]
+          }
+        ]
+      };
+      updatedTree = [newSubj, ...subjects];
+    }
+
+    saveLocalTree(updatedTree);
+
+    // Sync to database if user is authenticated
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const createSubRes = await fetch(`${API_URL}/api/subjects`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: cleanTitle,
+            description: `Automated course knowledge base for ${file.name}.`,
+            tags: 'PDF, Course'
+          })
+        });
+        const subData = await createSubRes.json();
+        if (subData.success && subData.subject) {
+          const subId = subData.subject.id;
+          const chapRes = await fetch(`${API_URL}/api/subjects/${subId}/chapters`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ name: 'Chapter 1: Solutions & Notes' })
+          });
+          const chapData = await chapRes.json();
+          if (chapData.success && chapData.chapter) {
+            const chapId = chapData.chapter.id;
+            const topRes = await fetch(`${API_URL}/api/subjects/chapters/${chapId}/topics`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ name: cleanTitle })
+            });
+            const topData = await topRes.json();
+            if (topData.success && topData.topic) {
+              const topId = topData.topic.id;
+              await fetch(`${API_URL}/api/subjects/topics/${topId}/materials`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  name: `${nameWithoutExt}.note`,
+                  type: 'pdf',
+                  content: newMaterial.content,
+                  fileSize: newMaterial.fileSize
+                })
+              });
+            }
+          }
+          fetchSubjectTree();
+        }
+      } catch (err) {
+        console.warn('Could not sync uploaded material to DB:', err.message);
       }
     }
   };
