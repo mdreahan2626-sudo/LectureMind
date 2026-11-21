@@ -24,7 +24,8 @@ import {
   MessageSquare,
   Send,
   Eye,
-  EyeOff
+  EyeOff,
+  Plus
 } from 'lucide-react';
 
 export default function FlashcardHub({ currentUser: _currentUser, onShowToast }) {
