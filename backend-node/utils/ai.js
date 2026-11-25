@@ -1,8 +1,11 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { callNemotron } = require('./nemotron');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash'];
+const GEMINI_MODELS = [
+  process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+  'gemini-flash-lite-latest',
+  'gemini-3.8-flash'
+];
 
 let geminiClient = null;
 if (GEMINI_API_KEY) {
@@ -14,43 +17,33 @@ if (GEMINI_API_KEY) {
 }
 
 /**
- * Robust Multi-Provider LLM Caller
- * Attempts Google Gemini first (cycling through models if needed),
- * then falls back seamlessly to NVIDIA Nemotron NIM.
+ * Google Gemini LLM Caller
+ * Uses gemini-3.5-flash-lite primarily and cycles through Gemini fallback models if needed.
  */
 async function callLLM(prompt, systemInstruction = "You are EduAssist, an advanced, accurate, and structured academic AI tutor.") {
-  // 1. Try Google Gemini with modern models
-  if (geminiClient) {
-    for (const modelName of GEMINI_MODELS) {
-      try {
-        const model = geminiClient.getGenerativeModel({
-          model: modelName,
-          systemInstruction: systemInstruction
-        });
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
-        if (text && text.trim().length > 0) {
-          return text.trim();
-        }
-      } catch (err) {
-        // If 503 (demand spike) or 404 (deprecated), try next Gemini model or fallback to Nemotron
-        console.warn(`[Gemini Engine] ${modelName} call failed (${err.message.slice(0, 80)}). Trying next...`);
+  if (!geminiClient) {
+    throw new Error('GEMINI_API_KEY is not configured.');
+  }
+
+  let lastErr = null;
+  for (const modelName of [...new Set(GEMINI_MODELS)]) {
+    try {
+      const model = geminiClient.getGenerativeModel({
+        model: modelName,
+        systemInstruction: systemInstruction
+      });
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      if (text && text.trim().length > 0) {
+        return text.trim();
       }
+    } catch (err) {
+      lastErr = err;
+      console.warn(`[Gemini Engine] ${modelName} call failed (${err.message.slice(0, 80)}). Trying next...`);
     }
   }
 
-  // 2. Fallback to NVIDIA Nemotron NIM
-  try {
-    console.log('[AI Engine] Routing request to NVIDIA Nemotron-3.5 NIM...');
-    const nemotronResponse = await callNemotron(prompt, systemInstruction);
-    if (nemotronResponse && nemotronResponse.trim().length > 0) {
-      return nemotronResponse.trim();
-    }
-  } catch (err) {
-    console.warn('[Nemotron Engine] Failed:', err.message);
-  }
-
-  throw new Error('Both Google Gemini and NVIDIA Nemotron AI providers are currently unavailable.');
+  throw new Error(`Google Gemini request failed: ${lastErr ? lastErr.message : 'No response generated'}`);
 }
 
 /**

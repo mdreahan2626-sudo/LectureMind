@@ -5,7 +5,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env'
 
 const prisma = require('../../prisma');
 const auth = require('../../middleware/auth');
-const { generateFlashcards } = require('../../utils/ai');
+const { generateFlashcards, generateStructuredNotes, generateQuizQuestions, generateTutorResponse, callLLM } = require('../../utils/ai');
 const rag = require('../../utils/rag');
 const multer = require('multer');
 const upload = multer({ limits: { fileSize: 25 * 1024 * 1024 } });
@@ -129,7 +129,7 @@ const summaryNode = async (state) => {
   }
   
   try {
-    const model = aiClient.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = aiClient.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
     const prompt = `You are a professional educational assistant. Summarize the following lecture text clearly in active voice, emphasizing key concepts and study takeaways:
     
     Lecture Title: ${state.title}
@@ -171,7 +171,7 @@ const mindmapNode = async (state) => {
   }
 
   try {
-    const model = aiClient.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = aiClient.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
     const prompt = `Create a hierarchical mindmap structure representing the key branches in the following lecture text.
     Return ONLY a valid JSON object matching the format:
     {
@@ -371,13 +371,13 @@ Student Question / Statement:
 
 Give a clear, insightful, encouraging explanation in 2 to 4 sentences:`;
 
-    const nemotronReply = await callNemotron(prompt, "You are an expert Socratic tutor assisting a university student.");
+    const geminiReply = await callLLM(prompt, "You are an expert Socratic tutor assisting a university student.");
     
     res.json({
-      reply: nemotronReply,
+      reply: geminiReply,
       rag: {
         enabled: true,
-        mode: 'nemotron_bolt_grounded',
+        mode: 'gemini_grounded',
         retrievedCount: 1
       }
     });
@@ -402,7 +402,7 @@ app.post('/api/summarize-text', async (req, res) => {
   }
 
   try {
-    const model = aiClient.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = aiClient.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
     const prompt = `Summarize the following text clearly in a structured format:
     ${text}`;
     const result = await model.generateContent(prompt);
@@ -446,7 +446,7 @@ Return ONLY a valid JSON array of objects. Format:
   }
 ]`;
 
-      const raw = await callNemotron(prompt, "You are an elite exam question creator. Return ONLY valid JSON array.");
+      const raw = await callLLM(prompt, "You are an elite exam question creator. Return ONLY valid JSON array.");
       let cleaned = raw.trim();
       if (cleaned.startsWith('```')) {
         cleaned = cleaned.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
@@ -670,7 +670,7 @@ Provide an engaging Socratic explanation and prompt them for their understanding
   }
 
   try {
-    const coachResponse = await callNemotron(userPrompt, systemPrompt);
+    const coachResponse = await callLLM(userPrompt, systemPrompt);
     res.json({ success: true, response: coachResponse });
   } catch (err) {
     console.error('Revision coach error:', err.message);

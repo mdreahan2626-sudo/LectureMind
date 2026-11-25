@@ -1,69 +1,4 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash'];
-let geminiClient = null;
-if (GEMINI_API_KEY) {
-  try {
-    geminiClient = new GoogleGenerativeAI(GEMINI_API_KEY);
-  } catch (err) {
-    console.warn('[Gemini Init Error]:', err.message);
-  }
-}
-
-const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || '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';
-const NVIDIA_BACKUP_API_KEY = process.env.NVIDIA_BACKUP_API_KEY || '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';
-const NVIDIA_MODEL = process.env.NVIDIA_NEMOTRON_MODEL || 'nvidia/nemotron-3.5-bolt-e4b';
-const NVIDIA_BASE_URL = process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1';
-
-/**
- * Call NVIDIA Nemotron API with fallback to backup key
- */
-async function callNemotron(prompt, systemInstruction = '', maxTokens = 2048) {
-  const messages = [];
-  if (systemInstruction) {
-    messages.push({ role: 'system', content: systemInstruction });
-  }
-  messages.push({ role: 'user', content: prompt });
-
-  const keysToTry = [NVIDIA_API_KEY, NVIDIA_BACKUP_API_KEY].filter(Boolean);
-  let lastError = null;
-
-  for (const key of keysToTry) {
-    try {
-      const response = await fetch(`${NVIDIA_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${key}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          model: NVIDIA_MODEL,
-          messages,
-          temperature: 0.2,
-          max_tokens: maxTokens
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`NVIDIA API responded with ${response.status}: ${errorText}`);
-      }
-
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
-      if (content) {
-        return content.trim();
-      }
-    } catch (err) {
-      console.warn(`[Nemotron] Call failed with key ...${key.slice(-6)}:`, err.message);
-      lastError = err;
-    }
-  }
-
-  throw lastError || new Error('All Nemotron API calls failed');
-}
+const { callLLM } = require('./ai');
 
 /**
  * Clean and extract JSON from LLM response
@@ -206,34 +141,7 @@ Ensure the mindmap has a clear central label and 3-5 branches each with 2-4 subt
 Return ONLY the raw JSON.`;
 
   try {
-    let rawResult = null;
-    
-    // 1. Try Google Gemini with high-speed gemini-3.5-flash-lite
-    if (geminiClient) {
-      for (const modelName of GEMINI_MODELS) {
-        try {
-          const model = geminiClient.getGenerativeModel({
-            model: modelName,
-            systemInstruction: systemInstruction
-          });
-          const result = await model.generateContent(prompt);
-          const text = result.response.text();
-          if (text && text.trim().length > 0) {
-            rawResult = text.trim();
-            break;
-          }
-        } catch (geminiErr) {
-          console.warn(`[Gemini Parse] ${modelName} spike or error:`, geminiErr.message.slice(0, 80));
-        }
-      }
-    }
-
-    // 2. Fallback to NVIDIA Nemotron NIM if Gemini did not produce a result
-    if (!rawResult) {
-      console.log('[Study Parser] Falling back to NVIDIA Nemotron NIM...');
-      rawResult = await callNemotron(prompt, systemInstruction, 3000);
-    }
-
+    const rawResult = await callLLM(prompt, systemInstruction);
     const parsed = extractJSON(rawResult);
     return parsed;
   } catch (err) {
@@ -278,7 +186,6 @@ Return ONLY the raw JSON.`;
 }
 
 module.exports = {
-  callNemotron,
   extractTextFromPDF,
   parseStudyMaterial
 };
