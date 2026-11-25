@@ -98,33 +98,42 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
           (subj.chapters || []).forEach(chap => {
             (chap.topics || []).forEach(top => {
               (top.materials || []).forEach(mat => {
-                if (!combinedSets.some(s => s.title === subj.name)) {
-                  const keyPoints = mat.keyPoints || (mat.content ? mat.content.split('\n\n') : []);
-                  const flashcards = mat.flashcards || [];
-                  const mains = mat.mainsQuestions || [];
-                  
-                  combinedSets.unshift({
-                    id: `rev-${subj.id}`,
-                    title: subj.name,
-                    summary: mat.summary || subj.description || `Comprehensive academic summary for ${subj.name}.`,
-                    keyPoints: keyPoints,
-                    mainsQuestions: mains,
-                    mindmap: mat.mindmap || {
-                      label: subj.name,
-                      children: [
-                        { label: "Core Principles", children: keyPoints.slice(0, 3).map(k => k.slice(0, 25)) },
-                        { label: "Exam Essentials", children: keyPoints.slice(3, 6).map(k => k.slice(0, 25)) }
-                      ]
-                    },
-                    cards: flashcards.length > 0 ? flashcards : keyPoints.map((kp, idx) => ({
-                      id: `c-${idx}`,
-                      front: `Key Concept #${idx + 1}: What is crucial to know about ${subj.name}?`,
-                      back: kp,
-                      hint: 'Review key evaluation criteria',
-                      difficulty: 'medium',
-                      tags: subj.name
-                    }))
-                  });
+                const keyPoints = mat.keyPoints || (mat.content ? mat.content.split('\n\n') : []);
+                const flashcards = mat.flashcards || [];
+                const mains = mat.mainsQuestions || [];
+                const richCards = flashcards.length > 0 ? flashcards : keyPoints.map((kp, idx) => ({
+                  id: `c-${idx}`,
+                  front: `Key Concept #${idx + 1}: What is crucial to know about ${subj.name}?`,
+                  back: kp,
+                  hint: 'Review key evaluation criteria',
+                  difficulty: 'medium',
+                  tags: subj.name
+                }));
+
+                const existingIdx = combinedSets.findIndex(s => s.title === subj.name);
+                const enrichedSet = {
+                  id: existingIdx !== -1 ? combinedSets[existingIdx].id : `rev-${subj.id}`,
+                  title: subj.name,
+                  rawContent: mat.content || keyPoints.join('\n'),
+                  summary: mat.summary || subj.description || `Comprehensive academic summary for ${subj.name}.`,
+                  keyPoints: keyPoints,
+                  mainsQuestions: mains,
+                  mindmap: mat.mindmap || {
+                    label: subj.name,
+                    children: [
+                      { label: "Core Principles", children: keyPoints.slice(0, 3).map(k => k.slice(0, 25)) },
+                      { label: "Exam Essentials", children: keyPoints.slice(3, 6).map(k => k.slice(0, 25)) }
+                    ]
+                  },
+                  cards: (existingIdx !== -1 && (combinedSets[existingIdx].cards || []).length >= richCards.length)
+                    ? combinedSets[existingIdx].cards
+                    : richCards
+                };
+
+                if (existingIdx !== -1) {
+                  combinedSets[existingIdx] = enrichedSet;
+                } else {
+                  combinedSets.unshift(enrichedSet);
                 }
               });
             });
@@ -248,6 +257,72 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
       if (onShowToast) onShowToast('Failed to generate summary deck', 'error');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const [isExtractingQA, setIsExtractingQA] = useState(false);
+
+  const handleRegenerateCardsWithAI = async () => {
+    if (!activeSet) return;
+    setIsExtractingQA(true);
+    try {
+      const sourceText = [
+        activeSet.rawContent || '',
+        activeSet.summary || '',
+        (activeSet.keyPoints || []).join('\n')
+      ].filter(Boolean).join('\n\n').trim() || activeSet.title;
+
+      const res = await fetch(`${API_URL}/api/nemotron/parse-text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: activeSet.title,
+          text: sourceText
+        })
+      });
+
+      const data = await res.json();
+      if (data.success && data.data) {
+        const parsed = data.data;
+        const freshCards = (parsed.flashcards || []).map((f, i) => ({
+          id: `ai-q-${Date.now()}-${i}`,
+          front: f.front,
+          back: f.back,
+          hint: f.hint || 'Key concept',
+          difficulty: f.difficulty || 'medium',
+          tags: activeSet.title
+        }));
+
+        const updatedDeck = {
+          ...activeSet,
+          summary: parsed.summary || activeSet.summary,
+          keyPoints: parsed.keyPoints?.length ? parsed.keyPoints : activeSet.keyPoints,
+          mindmap: parsed.mindmap || activeSet.mindmap,
+          mainsQuestions: parsed.mainsQuestions?.length ? parsed.mainsQuestions : activeSet.mainsQuestions,
+          cards: freshCards.length > 0 ? freshCards : activeSet.cards
+        };
+
+        setActiveSet(updatedDeck);
+        setSets(prev => prev.map(s => s.id === activeSet.id ? updatedDeck : s));
+        setCurrentCardIndex(0);
+        setIsFlipped(false);
+
+        // Persist updated flashcards locally
+        try {
+          const existing = JSON.parse(localStorage.getItem('lecturemind_guest_flashcards') || '[]');
+          const filtered = existing.filter(e => e.title !== updatedDeck.title);
+          localStorage.setItem('lecturemind_guest_flashcards', JSON.stringify([updatedDeck, ...filtered]));
+        } catch (e) {}
+
+        if (onShowToast) onShowToast(`Extracted ${updatedDeck.cards.length} Q&A flashcards using Gemini AI`, 'success');
+      } else {
+        if (onShowToast) onShowToast('Could not extract Q&A from this material.', 'error');
+      }
+    } catch (err) {
+      console.error('AI Q&A extract error:', err);
+      if (onShowToast) onShowToast('Failed to connect to Gemini AI service.', 'error');
+    } finally {
+      setIsExtractingQA(false);
     }
   };
 
@@ -707,15 +782,35 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
 
               {/* TAB 4: QUICK DRILL CARDS (Optional for speed reviews) */}
               {activeTab === 'cards' && (
-                <div className="flex flex-col items-center justify-between min-h-[340px] space-y-4">
+                <div className="flex flex-col items-center justify-between min-h-[340px] space-y-6">
                   
-                  <div className="w-full flex items-center justify-between text-xs">
-                    <span className="font-mono text-charcoal-soft font-bold">
-                      CHECKPOINT {currentCardIndex + 1} OF {(activeSet.cards || []).length}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full bg-coral/15 text-coral font-bold text-[10px] uppercase">
-                      Recall Check
-                    </span>
+                  <div className="w-full flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-charcoal-soft font-bold">
+                        QUESTION {currentCardIndex + 1} OF {(activeSet.cards || []).length}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-coral/15 text-coral font-bold text-[10px] uppercase">
+                        Flashcard Q&A
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={handleRegenerateCardsWithAI}
+                      disabled={isExtractingQA}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet hover:bg-violet-hover text-white text-xs font-bold shadow-soft disabled:opacity-50 transition-all"
+                    >
+                      {isExtractingQA ? (
+                        <>
+                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Extracting Q&A with Gemini AI…</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Extract Q&A with Gemini AI</span>
+                        </>
+                      )}
+                    </button>
                   </div>
 
                   {(activeSet.cards || []).length > 0 ? (
@@ -725,10 +820,10 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
                     >
                       <div className={`relative w-full h-full duration-300 preserve-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
                         
-                        {/* Front */}
+                        {/* Front: Question */}
                         <div className="absolute inset-0 w-full h-full rounded-2xl border border-rule bg-paper p-6 shadow-soft flex flex-col justify-between backface-hidden">
                           <span className="text-[10px] font-bold text-violet uppercase tracking-widest font-mono flex items-center gap-1">
-                            <HelpCircle className="w-3.5 h-3.5" /> REVISION CHECKPOINT
+                            <HelpCircle className="w-3.5 h-3.5" /> QUESTION
                           </span>
                           <p className="text-sm font-serif font-bold text-charcoal text-center px-4 leading-relaxed">
                             {activeSet.cards[currentCardIndex]?.front}
@@ -739,16 +834,16 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
                           </div>
                         </div>
 
-                        {/* Back */}
+                        {/* Back: Answer */}
                         <div className="absolute inset-0 w-full h-full rounded-2xl border border-teal/40 bg-paper-deep p-6 shadow-soft flex flex-col justify-between backface-hidden rotate-y-180">
                           <span className="text-[10px] font-bold text-teal uppercase tracking-widest font-mono flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> KEY EXPLANATION
+                            <CheckCircle2 className="w-3.5 h-3.5" /> CORRECT ANSWER
                           </span>
                           <p className="text-xs sm:text-sm font-medium text-charcoal text-center px-4 leading-relaxed">
                             {activeSet.cards[currentCardIndex]?.back}
                           </p>
                           <div className="text-center text-[11px] text-charcoal-soft font-mono">
-                            Click to flip back
+                            Click to flip back to Question
                           </div>
                         </div>
 
@@ -757,7 +852,7 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
                   ) : null}
 
                   {/* Navigation */}
-                  <div className="w-full flex items-center justify-between pt-4 border-t border-rule">
+                  <div className="w-full flex items-center justify-between pt-3 border-t border-rule">
                     <button
                       onClick={() => {
                         if (currentCardIndex > 0) {
@@ -771,7 +866,7 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
                       Prev
                     </button>
                     <span className="text-xs text-charcoal-soft">
-                      Tap card to reveal answer
+                      Tap card to flip between Question & Answer
                     </span>
                     <button
                       onClick={() => {
@@ -786,6 +881,54 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
                       Next
                     </button>
                   </div>
+
+                  {/* Full AI-Extracted Questions & Answers List */}
+                  {(activeSet.cards || []).length > 0 && (
+                    <div className="w-full pt-4 border-t border-rule space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-charcoal flex items-center gap-1.5">
+                          <BookOpen className="w-3.5 h-3.5 text-violet" />
+                          All Extracted Questions &amp; Answers ({(activeSet.cards || []).length})
+                        </h4>
+                        <span className="text-[10px] font-mono text-charcoal-soft">
+                          Generated by Gemini AI
+                        </span>
+                      </div>
+
+                      <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
+                        {(activeSet.cards || []).map((card, idx) => (
+                          <div
+                            key={card.id || idx}
+                            onClick={() => { setCurrentCardIndex(idx); setIsFlipped(false); }}
+                            className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                              idx === currentCardIndex
+                                ? 'bg-violet-soft/30 border-violet/40'
+                                : 'bg-paper-deep/40 border-rule hover:border-charcoal/25'
+                            }`}
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <span className="w-5 h-5 rounded-md bg-violet/15 text-violet font-mono text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                                Q{idx + 1}
+                              </span>
+                              <div className="space-y-1.5 flex-1">
+                                <p className="text-xs font-bold text-charcoal leading-snug">
+                                  {card.front}
+                                </p>
+                                <div className="p-2.5 rounded-lg bg-teal-soft/25 border border-teal/25">
+                                  <span className="text-[10px] font-mono font-bold uppercase text-teal block mb-0.5">
+                                    Answer:
+                                  </span>
+                                  <p className="text-xs text-charcoal leading-relaxed">
+                                    {card.back}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                 </div>
               )}
