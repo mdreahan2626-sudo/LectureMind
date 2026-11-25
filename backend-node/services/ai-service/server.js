@@ -678,6 +678,31 @@ Provide an engaging Socratic explanation and prompt them for their understanding
   }
 });
 
+// 11. Direct Short Answer Generator for Flashcards (Gemini AI)
+app.post('/api/ai/answer-card', async (req, res) => {
+  const { question, topic, context } = req.body;
+  if (!question) {
+    return res.status(400).json({ error: 'Question is required' });
+  }
+
+  const systemPrompt = "You are an expert academic tutor. Provide a direct, accurate, and concise short answer (1-3 sentences) to the flashcard question. NEVER say 'it is mentioned in the notes' or 'covered in the document'. Give the actual factual answer clearly.";
+  const userPrompt = `Topic: "${topic || 'General Studies'}"
+Reference Notes / Context:
+${(context || '').slice(0, 6000)}
+
+Flashcard Question: "${question}"
+
+Provide the exact, short, factual answer:`;
+
+  try {
+    const answer = await callLLM(userPrompt, systemPrompt);
+    res.json({ success: true, answer: answer.trim() });
+  } catch (err) {
+    console.error('Answer card error:', err.message);
+    res.status(500).json({ error: 'Failed to generate short answer with Gemini AI.' });
+  }
+});
+
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`[AI Service] Running on port ${PORT}`);

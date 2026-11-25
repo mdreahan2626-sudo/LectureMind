@@ -107,38 +107,21 @@ Extract and produce the following structured JSON output:
   ],
   "flashcards": [
     {
-      "front": "Clear question testing a key definition or principle",
-      "back": "Precise answer",
+      "front": "Specific academic question directly from the material (e.g., What is the 5-tuple definition of a DFA?)",
+      "back": "Direct, concise, factual short answer in 1-3 sentences with exact terms/formulas. NEVER write 'mentioned in the notes' or 'covered in the document'.",
       "hint": "Helpful mnemonic or concept clue",
       "difficulty": "medium",
       "tags": "Core"
-    },
-    {
-      "front": "Fill in the blank: The {{key term}} governs...",
-      "back": "key term",
-      "hint": "Definition clue",
-      "difficulty": "easy",
-      "tags": "Terminology"
-    },
-    {
-      "front": "What is the primary role of...",
-      "back": "Detailed concise explanation",
-      "hint": "Function clue",
-      "difficulty": "medium",
-      "tags": "Mechanism"
-    },
-    {
-      "front": "How does ... differ from ...?",
-      "back": "Distinct contrast",
-      "hint": "Comparison clue",
-      "difficulty": "hard",
-      "tags": "Analysis"
     }
   ]
 }
 
-Ensure the mindmap has a clear central label and 3-5 branches each with 2-4 subtopics.
-Return ONLY the raw JSON.`;
+CRITICAL RULES:
+- Generate 6 to 8 high-yield flashcards in the "flashcards" array.
+- Every flashcard "front" must be a specific, testable question or definition prompt from the uploaded text.
+- Every flashcard "back" MUST be the actual, direct, concise answer (1-3 sentences). NEVER say "covered in the document", "mentioned in the notes", or "refer to text".
+- Ensure the mindmap has a clear central label and 3-5 branches each with 2-4 subtopics.
+- Return ONLY the raw JSON object.`;
 
   try {
     const rawResult = await callLLM(prompt, systemInstruction);

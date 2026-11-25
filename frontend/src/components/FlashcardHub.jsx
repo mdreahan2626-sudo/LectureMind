@@ -326,6 +326,68 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
     }
   };
 
+  const [answeringCardIdx, setAnsweringCardIdx] = useState(null);
+
+  const isPlaceholderAnswer = (text = '') => {
+    const lower = text.toLowerCase();
+    return (
+      !text.trim() ||
+      lower.includes('mentioned in the note') ||
+      lower.includes('covered in the document') ||
+      lower.includes('fundamental study and principles') ||
+      lower.includes('extracted lecture notes') ||
+      lower.includes('refer to the text') ||
+      lower.includes('see notes')
+    );
+  };
+
+  const handleAnswerSingleCardWithAI = async (cardIdx) => {
+    if (!activeSet || !activeSet.cards || !activeSet.cards[cardIdx]) return;
+    const card = activeSet.cards[cardIdx];
+    setAnsweringCardIdx(cardIdx);
+
+    try {
+      const context = [
+        activeSet.rawContent || '',
+        activeSet.summary || '',
+        (activeSet.keyPoints || []).join('\n')
+      ].filter(Boolean).join('\n\n');
+
+      const res = await fetch(`${API_URL}/api/ai/answer-card`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: card.front,
+          topic: activeSet.title,
+          context
+        })
+      });
+
+      const data = await res.json();
+      if (data.success && data.answer) {
+        const updatedCards = activeSet.cards.map((c, idx) =>
+          idx === cardIdx ? { ...c, back: data.answer } : c
+        );
+        const updatedDeck = { ...activeSet, cards: updatedCards };
+        setActiveSet(updatedDeck);
+        setSets(prev => prev.map(s => s.id === activeSet.id ? updatedDeck : s));
+
+        try {
+          const existing = JSON.parse(localStorage.getItem('lecturemind_guest_flashcards') || '[]');
+          const filtered = existing.filter(e => e.title !== updatedDeck.title);
+          localStorage.setItem('lecturemind_guest_flashcards', JSON.stringify([updatedDeck, ...filtered]));
+        } catch (e) {}
+
+        if (onShowToast) onShowToast('Generated short answer using Gemini AI', 'success');
+      }
+    } catch (err) {
+      console.error('Answer card error:', err);
+      if (onShowToast) onShowToast('Failed to generate short answer.', 'error');
+    } finally {
+      setAnsweringCardIdx(null);
+    }
+  };
+
   const toggleAnswer = (idx) => {
     setExpandedAnswers(prev => ({ ...prev, [idx]: !prev[idx] }));
   };
@@ -815,8 +877,14 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
 
                   {(activeSet.cards || []).length > 0 ? (
                     <div
-                      onClick={() => setIsFlipped(!isFlipped)}
-                      className="w-full max-w-lg h-56 perspective-1000 cursor-pointer select-none"
+                      onClick={() => {
+                        const nextFlipped = !isFlipped;
+                        setIsFlipped(nextFlipped);
+                        if (nextFlipped && isPlaceholderAnswer(activeSet.cards[currentCardIndex]?.back)) {
+                          handleAnswerSingleCardWithAI(currentCardIndex);
+                        }
+                      }}
+                      className="w-full max-w-lg h-60 perspective-1000 cursor-pointer select-none"
                     >
                       <div className={`relative w-full h-full duration-300 preserve-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
                         
@@ -825,7 +893,7 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
                           <span className="text-[10px] font-bold text-violet uppercase tracking-widest font-mono flex items-center gap-1">
                             <HelpCircle className="w-3.5 h-3.5" /> QUESTION
                           </span>
-                          <p className="text-sm font-serif font-bold text-charcoal text-center px-4 leading-relaxed">
+                          <p className="text-sm font-serif font-bold text-charcoal text-center px-4 leading-relaxed overflow-y-auto">
                             {activeSet.cards[currentCardIndex]?.front}
                           </p>
                           <div className="flex justify-between text-[11px] text-charcoal-soft font-mono">
@@ -836,12 +904,37 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
 
                         {/* Back: Answer */}
                         <div className="absolute inset-0 w-full h-full rounded-2xl border border-teal/40 bg-paper-deep p-6 shadow-soft flex flex-col justify-between backface-hidden rotate-y-180">
-                          <span className="text-[10px] font-bold text-teal uppercase tracking-widest font-mono flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> CORRECT ANSWER
-                          </span>
-                          <p className="text-xs sm:text-sm font-medium text-charcoal text-center px-4 leading-relaxed">
-                            {activeSet.cards[currentCardIndex]?.back}
-                          </p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-teal uppercase tracking-widest font-mono flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> CORRECT ANSWER
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAnswerSingleCardWithAI(currentCardIndex);
+                              }}
+                              disabled={answeringCardIdx === currentCardIndex}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal/15 hover:bg-teal/25 text-teal text-[10px] font-bold transition-all"
+                            >
+                              <Sparkles className="w-2.5 h-2.5" />
+                              {answeringCardIdx === currentCardIndex ? 'Generating…' : 'Gemini Short Answer'}
+                            </button>
+                          </div>
+
+                          <div className="flex-1 flex items-center justify-center px-4 overflow-y-auto">
+                            {answeringCardIdx === currentCardIndex ? (
+                              <div className="flex items-center gap-2 text-xs text-teal font-semibold">
+                                <div className="w-4 h-4 border-2 border-teal border-t-transparent rounded-full animate-spin" />
+                                <span>Generating short answer with Gemini AI…</span>
+                              </div>
+                            ) : (
+                              <p className="text-xs sm:text-sm font-medium text-charcoal text-center leading-relaxed">
+                                {activeSet.cards[currentCardIndex]?.back}
+                              </p>
+                            )}
+                          </div>
+
                           <div className="text-center text-[11px] text-charcoal-soft font-mono">
                             Click to flip back to Question
                           </div>
