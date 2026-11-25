@@ -213,7 +213,7 @@ export default function InteractiveSandbox() {
 
       if (inputMode === 'upload' && selectedFile) {
         setProgress(35);
-        setStatusMessage('Sending to Nemotron-3.5 NIM for layout & taxonomy parsing…');
+        setStatusMessage('Sending to Gemini AI for layout & taxonomy parsing…');
         
         const formData = new FormData();
         formData.append('file', selectedFile);
@@ -234,7 +234,7 @@ export default function InteractiveSandbox() {
 
       } else if (inputMode === 'paste' && pastedText.trim()) {
         setProgress(35);
-        setStatusMessage('Nemotron-3.5 Bolt analyzing concepts, taxonomy, and questions…');
+        setStatusMessage('Gemini AI analyzing concepts, taxonomy, and questions…');
 
         const response = await fetch(`${API_URL}/api/nemotron/parse-text`, {
           method: 'POST',
@@ -282,7 +282,7 @@ export default function InteractiveSandbox() {
 
     } catch (err) {
       console.error('Parsing failed:', err);
-      setErrorMsg(err.message || 'Error occurred while parsing with Nemotron AI.');
+      setErrorMsg(err.message || 'Error occurred while parsing with Gemini AI.');
     } finally {
       setIsProcessing(false);
     }
@@ -307,13 +307,13 @@ export default function InteractiveSandbox() {
         <div className="text-center max-w-2xl mx-auto mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-paper-deep border border-rule text-xs font-semibold text-charcoal mb-3 shadow-xs">
             <Sparkles className="w-3.5 h-3.5 text-violet" />
-            <span>Powered by NVIDIA Nemotron-3.5 AI</span>
+            <span>Powered by Google Gemini AI</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal tracking-tight mb-2">
             Upload PDF & Extract Knowledge Instantly
           </h2>
           <p className="text-xs sm:text-sm text-charcoal-soft leading-relaxed font-sans">
-            Drop your lecture PDF or notes. Nemotron automatically distills all crucial points, maps out concept hierarchies, generates SM-2 flashcards, and drafts Mains questions.
+            Drop your lecture PDF or notes. Gemini AI automatically distills all crucial points, maps out concept hierarchies, generates SM-2 flashcards, and drafts Mains questions.
           </p>
         </div>
 
@@ -485,7 +485,7 @@ export default function InteractiveSandbox() {
               <div className="mt-4 p-2.5 rounded-lg bg-paper-deep border border-rule flex items-center justify-between text-[11px]">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-teal animate-pulse" />
-                  <span className="font-semibold text-charcoal">Nemotron 3.5 Bolt Parser</span>
+                  <span className="font-semibold text-charcoal">Gemini 3.5 Flash Lite Parser</span>
                 </div>
                 <span className="text-[10px] text-charcoal-soft font-mono">Zero Latency</span>
               </div>
@@ -524,7 +524,7 @@ export default function InteractiveSandbox() {
                 {isProcessing ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Extracting with Nemotron AI…</span>
+                    <span>Extracting with Gemini AI…</span>
                   </>
                 ) : (
                   <>
@@ -569,7 +569,7 @@ export default function InteractiveSandbox() {
               </div>
 
               <span className="hidden sm:inline-flex text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal/15 text-teal">
-                Nemotron Grounded
+                Gemini Grounded
               </span>
             </div>
 
@@ -772,7 +772,7 @@ export default function InteractiveSandbox() {
                 <div className="space-y-4">
                   <div className="border-b border-rule pb-2 flex items-center justify-between text-xs">
                     <span className="font-bold text-charcoal">Mains Examination Practice Suite</span>
-                    <span className="text-[11px] text-charcoal-soft font-mono">Evaluated by Nemotron Reasoning</span>
+                    <span className="text-[11px] text-charcoal-soft font-mono">Evaluated by Gemini AI</span>
                   </div>
 
                   <div className="space-y-4">

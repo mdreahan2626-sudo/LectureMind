@@ -207,14 +207,14 @@ export default function SubjectExplorer({ currentUser: _currentUser, onShowToast
   const processUploadedFile = async (file) => {
     setUploadProcessing(true);
     setUploadProgress(15);
-    setUploadStage("Uploading document to Nemotron AI parser…");
+    setUploadStage("Uploading document to Gemini AI parser…");
 
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
     const cleanTitle = nameWithoutExt.replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
 
     try {
       setUploadProgress(35);
-      setUploadStage("Nemotron-3.5 reading text, tables & formulas…");
+      setUploadStage("Gemini AI reading text, tables & formulas…");
 
       const formData = new FormData();
       formData.append('file', file);

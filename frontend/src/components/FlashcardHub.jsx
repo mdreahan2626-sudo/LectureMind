@@ -145,7 +145,7 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
         summary: "LectureMind's Agentic Revision Hub synthesizes any textbook, syllabus, or lecture PDF into high-retention summary checkpoints, cognitive mind maps, and interactive diagnostic prompts.",
         keyPoints: [
           "Upload any course lecture or syllabus PDF in Lectures & Folder Manager.",
-          "Nemotron-3.5 extracts layout, formulas, and critical concepts in seconds.",
+          "Gemini AI extracts layout, formulas, and critical concepts in seconds.",
           "Review section by section using summary cards, or test your recall with the AI Revision Coach.",
           "Generate instant timed quizzes, Socratic audio voice drills, and track your revision velocity."
         ],
@@ -360,7 +360,7 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
               {isGenerating ? (
                 <>
                   <Zap className="w-3.5 h-3.5 animate-spin" />
-                  <span>Synthesizing with Nemotron…</span>
+                  <span>Synthesizing with Gemini AI…</span>
                 </>
               ) : (
                 <>
@@ -569,7 +569,7 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-charcoal flex items-center gap-2 font-mono">
                         <Sparkles className="w-4 h-4 text-violet" />
-                        Nemotron Agentic Revision Coach
+                        Gemini Agentic Revision Coach
                       </span>
                       <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal/15 text-teal">
                         Active on: {activeSet.title}
@@ -634,7 +634,7 @@ export default function FlashcardHub({ currentUser: _currentUser, onShowToast })
                     <div className="p-8 rounded-xl bg-paper border border-rule text-center space-y-2">
                       <Sparkles className="w-6 h-6 text-violet animate-spin mx-auto" />
                       <span className="text-xs font-bold text-charcoal block">
-                        Nemotron is analyzing revision concepts…
+                        Gemini AI is analyzing revision concepts…
                       </span>
                     </div>
                   ) : coachResponse ? (
